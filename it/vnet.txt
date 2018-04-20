@@ -1,0 +1,27 @@
+sudo ip netns add pod1
+sudo ip netns add pod2
+
+sudo ip link add c1-eth0 type veth peer name c1-eth1
+sudo ip link add c2-eth0 type veth peer name c2-eth1
+
+sudo ip link set c1-eth1 netns pod1
+sudo ip link set c2-eth1 netns pod2
+
+sudo ovs-vsctl add-br br0
+sudo ovs-vsctl add-port br0 c1-eth0
+sudo ovs-vsctl add-port br0 c2-eth0
+
+sudo ip netns exec pod1 ip addr add 172.17.100.2/24 dev c1-eth1
+sudo ip netns exec pod2 ip addr add 172.17.100.3/24 dev c2-eth1
+sudo ip netns exec pod1 ip link set c1-eth1 up
+sudo ip netns exec pod2 ip link set c2-eth1 up
+
+sudo ip link set c1-eth0 up
+sudo ip link set c2-eth0 up
+
+sudo ip netns exec pod1 route add -net 0.0.0.0 dev c1-eth1
+sudo ip netns exec pod2 route add -net 0.0.0.0 dev c2-eth1
+
+sudo ifconfig br0 up
+sudo route add -net 172.17.100.0/24 dev br0
+sudo route add -net 172.17.200.0/24 dev br0

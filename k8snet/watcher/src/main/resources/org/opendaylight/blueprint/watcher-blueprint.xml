@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- vi: set et smarttab sw=4 tabstop=4: -->
+<!--
+Copyright © 2017 Future Network and others. All rights reserved.
+
+This program and the accompanying materials are made available under the
+terms of the Eclipse Public License v1.0 which accompanies this distribution,
+and is available at http://www.eclipse.org/legal/epl-v10.html
+-->
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0"
+  xmlns:odl="http://opendaylight.org/xmlns/blueprint/v1.0.0"
+  odl:use-default-for-reference-types="true">
+
+  <reference id="dataBroker"
+    interface="org.opendaylight.controller.md.sal.binding.api.DataBroker"
+    odl:type="default" />
+  <reference id="clusterSingletonServiceProvider"
+    interface="org.opendaylight.mdsal.singleton.common.api.ClusterSingletonServiceProvider" />
+
+  <odl:clustered-app-config binding-class="org.opendaylight.yang.gen.v1.org.future.k8s.apiserver.config.rev180307.K8sApiserverConfig" id="k8sApiserverConfig" >
+    <odl:default-config><![CDATA[
+      <k8s-apiserver-config xmlns="org.future.k8s.apiserver.config">
+        <scheme>http</scheme>
+        <master-ip>10.42.118.50</master-ip>
+        <port>8080</port>
+      </k8s-apiserver-config>
+    ]]></odl:default-config>
+  </odl:clustered-app-config>
+  <bean id="k8SClientInstance"
+        class="org.future.k8snet.singleton.KubernetesClientSingleton" destroy-method="close">
+    <argument ref="k8sApiserverConfig" />
+    <argument ref="dataBroker" />
+    <argument ref="clusterSingletonServiceProvider" />
+  </bean>
+
+</blueprint>

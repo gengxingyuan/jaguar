@@ -1,0 +1,33 @@
+module k8s-apiserver-config {
+    yang-version 1;
+
+    namespace "org.future.k8s.apiserver.config";
+    prefix k8s-apiserver-config;
+
+    description
+      "Configuration for the Kubernetes apiserver.";
+
+    revision "2018-03-07" {
+        description
+            "Initial revision.";
+    }
+
+    import ietf-inet-types {
+        prefix inet;
+        revision-date "2013-07-15";
+    }
+
+    container k8s-apiserver-config {
+        leaf scheme {
+            type string;
+        }
+        leaf master-ip {
+            type inet:ip-address;
+            default "127.0.0.1";
+        }
+        leaf port {
+            type uint16;
+            default 8080;
+        }
+    }
+}
