@@ -13,7 +13,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
   <parent>
     <groupId>org.opendaylight.controller</groupId>
     <artifactId>config-parent</artifactId>
-    <version>0.6.3-Carbon</version>
+    <version>0.6.4-Carbon</version>
     <relativePath/>
   </parent>
 
@@ -34,7 +34,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
       <dependency>
         <groupId>org.opendaylight.controller</groupId>
         <artifactId>mdsal-artifacts</artifactId>
-        <version>1.5.3-Carbon</version>
+        <version>1.5.4-Carbon</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
