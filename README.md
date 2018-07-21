@@ -1,5 +1,5 @@
 # Introduction
-基于开源的SDN控制器OpenDaylight的Kuberenetes网络解决方案.
+基于开源的SDN控制器OpenDaylight的Kubernetes网络解决方案.
 
 A SDN solusion for Kubernetes's network based on OpenDaylight.
 ## Background
