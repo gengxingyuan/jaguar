@@ -1,4 +1,4 @@
-## 1. 如何下载源代码?
+## 1. 如何下载项目源代码?
 git clone https://gitlab.com/sdnlab/jaguar.git
 或者
 git clone git@gitlab.com:sdnlab/jaguar.git
