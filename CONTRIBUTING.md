@@ -3,6 +3,8 @@ git clone https://gitlab.com/sdnlab/jaguar.git
 或者
 git clone git@gitlab.com:sdnlab/jaguar.git
 
+也可以直接在jaguar项目页面直接点击仓库地址后的下载按钮,下载.zip或.gz格式的源码压缩包
+
 ## 2. 如何编译源代码?
 在项目的根目录下,执行mvn clean install
 如果由于单元测试问题导致编译不通过,可以先执行 mvn clean install -DskipTests
