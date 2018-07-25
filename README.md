@@ -11,9 +11,7 @@ Kubernetes is a well-known container orchestration engine framework and is gaini
 
 ## HOW TO BUILD
 In project root path,execute command:
-> mvn clean install
-> or
-> mvn clean install -DskipTests
+> mvn clean install <br> or <br> mvn clean install -DskipTests
 
 ## Configure and Run
 
