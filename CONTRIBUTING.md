@@ -1,7 +1,7 @@
 ## 1. 如何下载项目源代码?
-git clone https://gitlab.com/sdnlab/jaguar.git
-或者
-git clone git@gitlab.com:sdnlab/jaguar.git
+  git clone https://gitlab.com/sdnlab/jaguar.git
+  或者
+  git clone git@gitlab.com:sdnlab/jaguar.git
 
 也可以直接在jaguar项目页面直接点击仓库地址后的下载按钮,下载.zip或.gz格式的源码压缩包
 
