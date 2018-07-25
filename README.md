@@ -1,31 +1,36 @@
+# *JAGUAR Project*
+
 ![](https://img1.sdnlab.com/wp-content/uploads/2018/07/21jaguar_01_668x400.jpg)
 
 # Introduction
+
 JAGUAR项目是一个基于开源的SDN控制器OpenDaylight的Kubernetes网络解决方案.
 
 JAGUAR is a SDN solusion for Kubernetes's network based on OpenDaylight.
 
-## Background
-Kubernetes is a well-known container orchestration engine framework and is gaining more adoption as container deployments are in the rise. The aim of this project is to integrate Kubernetes and OpenDaylight in a seamless manner.
-目前Kubernetes的网络实现都还谈不上是比较成熟的SDN，因此基于OpenDaylight为Kubernetes提供一个可用的SDN实现是非常有意义的.
+# Background
 
-## HOW TO BUILD
+目前Kubernetes的网络实现都还谈不上是比较成熟的SDN，因此基于OpenDaylight为Kubernetes提供一个可用的SDN实现是非常有意义的。
+
+Kubernetes is a well-known container orchestration engine framework and is gaining more adoption as container deployments are in the rise. The aim of this project is to integrate Kubernetes and OpenDaylight in a seamless manner.
+
+
+# HOW TO BUILD
 In project root path,execute command:
 > mvn clean install <br> or <br> mvn clean install -DskipTests
 
-## Configure and Run
+# Configure and Run
 
-编译成功后,进入到目录 karaf/target/assembly/bin/ 执行./karaf启动版本
+* 编译成功后,进入到目录 karaf/target/assembly/bin/ 执行./karaf启动版本
 
-版本启动后,通过浏览器登陆web界面,通过restconf修改k8s apiserver的IP地址和端口号
+* 版本启动后,通过浏览器登陆web界面,通过restconf修改k8s apiserver的IP地址和端口号
 
-YANG模块是k8s-apiserver-config
+* YANG模块是k8s-apiserver-config
+
+* 已经验证可连接K8S 1.6版本,计划在10月份发布版本里支持K8S 1.10版本
 
 
-已经验证可连接K8S 1.6版本,计划在10月份发布版本里支持K8S 1.10版本
-
-
-## FAQ
+# FAQ
 
 ### 1 为什么会成立这个开源项目？
 
