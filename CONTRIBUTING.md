@@ -1,5 +1,5 @@
 ## 1. 如何下载源代码?
-git clone https://gitlab.com/sdnlab/jaguar.git/
+git clone https://gitlab.com/sdnlab/jaguar.git
 
 ## 2. 如何编译源代码?
 在项目的根目录下,执行mvn clean install
