@@ -7,7 +7,7 @@
 
 ## 2. 如何编译源代码?
     在项目的根目录下,执行mvn clean install
-    如果由于单元测试问题导致编译不通过,可以先执行 mvn clean install -DskipTests
+    如果由于单元测试问题导致编译不通过,可以执行 mvn clean install -DskipTests
 
 ## 3. 该项目如何启动?需要哪些基本配置?
     编译成功后,进入到目录 karaf/target/assembly/bin/ 执行./karaf启动版本
