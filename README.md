@@ -23,9 +23,7 @@ In project root path,execute command:
 
 * 编译成功后,进入到目录 karaf/target/assembly/bin/ 执行./karaf启动版本
 
-* 版本启动后,通过浏览器登陆web界面,通过restconf修改k8s apiserver的IP地址和端口号
-
-* YANG模块是k8s-apiserver-config
+* 版本启动后,通过浏览器登陆web界面,通过restconf修改k8s apiserver的IP地址和端口号,YANG模块是k8s-apiserver-config
 
 * 已经验证可连接K8S 1.6版本,计划在10月份发布版本里支持K8S 1.10版本
 
