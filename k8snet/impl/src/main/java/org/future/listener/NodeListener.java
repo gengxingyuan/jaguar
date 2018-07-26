@@ -8,7 +8,6 @@
 
 package org.future.listener;
 
-import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -17,6 +16,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import javax.annotation.Nonnull;
 
 import org.future.util.OperationProcessor;
 import org.future.util.OvsdbUtil;
@@ -118,7 +118,7 @@ public class NodeListener implements DataTreeChangeListener<K8sNodes> {
     }
 
     private synchronized void add(K8sNodes nodeNew) {
-        LOG.debug("k8sNode added - ovsdb node connecting!"+nodeNew);
+        LOG.debug("k8sNode added - ovsdb node connecting!" + nodeNew);
         ConnectionInfo connectionInfo = OvsdbUtil.getConnectionInfo(
                 String.valueOf(nodeNew.getInternalIpAddress().getValue()),6640);
         Node node = southboundUtils.createNode(connectionInfo);
@@ -131,20 +131,20 @@ public class NodeListener implements DataTreeChangeListener<K8sNodes> {
                     false, DatapathTypeSystem.class, null, null,
                     null, null, 0);
         } catch (InterruptedException e) {
-            LOG.info("addBridge failed"+e);
+            LOG.info("addBridge failed" + e);
         }
         addTermininationPointForCurNode(connectionInfo);
         nodeConntionMap.put(nodeId.getValue(),connectionInfo);
 
-        LOG.info("add node :"+nodeNew);
+        LOG.info("add node :" + nodeNew);
     }
 
     private void update(K8sNodes nodeOld, K8sNodes nodeNew) {
-        LOG.info("k8sNode updated - ovsdb node!"+nodeNew);
+        LOG.info("k8sNode updated - ovsdb node!" + nodeNew);
     }
 
     private synchronized void delete(K8sNodes nodeOld) {
-        LOG.info("k8sNode deleted !"+nodeOld);
+        LOG.info("k8sNode deleted !" + nodeOld);
         ConnectionInfo connectionInfo = OvsdbUtil.getConnectionInfo(
                 nodeOld.getInternalIpAddress().getIpv4Address().getValue(),6640);
         Node node = southboundUtils.createNode(connectionInfo);
@@ -158,40 +158,38 @@ public class NodeListener implements DataTreeChangeListener<K8sNodes> {
 
     private void addTermininationPointForCurNode(ConnectionInfo curConnectionInfo) {
         Node curNode = southboundUtils.createNode(curConnectionInfo);
-        String cur_node_ip = curConnectionInfo.getRemoteIp().getIpv4Address().getValue();
-        String tunInterface1 = cur_node_ip.replaceAll(".","-");
+        String curNodeIp = curConnectionInfo.getRemoteIp().getIpv4Address().getValue();
+        String tunInterface1 = curNodeIp.replaceAll(".","-");
         Map<String,String> options1 = new HashMap<>();
-        options1.put("remote_ip",cur_node_ip);
+        options1.put("remote_ip",curNodeIp);
         for (ConnectionInfo otherConn:nodeConntionMap.values()) {
             Node otherNode = southboundUtils.createNode(otherConn);
-            String remote_ip = otherConn.getRemoteIp().getIpv4Address().getValue();
-            String tunInterface = remote_ip.replaceAll(".","-");
+            String remoteIp = otherConn.getRemoteIp().getIpv4Address().getValue();
+            String tunInterface = remoteIp.replaceAll(".","-");
             Map<String,String> options = new HashMap<>();
-            options.put("remote_ip",remote_ip);
+            options.put("remote_ip",remoteIp);
             dbProcessor.enqueueOperation(manager ->  {
-                    InstanceIdentifier<TerminationPoint> tpIid =
-                            southboundUtils.createTerminationPointInstanceIdentifier(curNode, tunInterface);
-                    TerminationPoint tp = createTerminationPoint(tunInterface,options,tpIid);
-                    manager.writeToTransaction(LogicalDatastoreType.CONFIGURATION,tpIid,tp,false);
+                InstanceIdentifier<TerminationPoint> tpIid =
+                    southboundUtils.createTerminationPointInstanceIdentifier(curNode, tunInterface);
+                TerminationPoint tp = createTerminationPoint(tunInterface,options,tpIid);
+                manager.writeToTransaction(LogicalDatastoreType.CONFIGURATION,tpIid,tp,false);
             });
             dbProcessor.enqueueOperation(manager ->  {
-                    InstanceIdentifier<TerminationPoint> tpIid =
-                            southboundUtils.createTerminationPointInstanceIdentifier(otherNode, tunInterface1);
-                    TerminationPoint tp = createTerminationPoint(tunInterface1,options1,tpIid);
-                    manager.writeToTransaction(LogicalDatastoreType.CONFIGURATION,tpIid,tp,false);
+                InstanceIdentifier<TerminationPoint> tpIid =
+                    southboundUtils.createTerminationPointInstanceIdentifier(otherNode, tunInterface1);
+                TerminationPoint tp = createTerminationPoint(tunInterface1,options1,tpIid);
+                manager.writeToTransaction(LogicalDatastoreType.CONFIGURATION,tpIid,tp,false);
             });
         }
     }
 
     private TerminationPoint createTerminationPoint(String portName,Map<String,String> options,
                                                     InstanceIdentifier<TerminationPoint> tpIid) {
-        TerminationPointBuilder tpBuilder = new TerminationPointBuilder();
+
         OvsdbTerminationPointAugmentationBuilder tpAugmentationBuilder = new OvsdbTerminationPointAugmentationBuilder();
 
         tpAugmentationBuilder.setName(portName);
-
         tpAugmentationBuilder.setInterfaceType(InterfaceTypeVxlan.class);
-
 
         List<Options> optionsList = new ArrayList<>();
         for (Map.Entry<String, String> entry : options.entrySet()) {
@@ -203,6 +201,7 @@ public class NodeListener implements DataTreeChangeListener<K8sNodes> {
         }
         tpAugmentationBuilder.setOptions(optionsList);
 
+        TerminationPointBuilder tpBuilder = new TerminationPointBuilder();
         tpBuilder.setKey(InstanceIdentifier.keyOf(tpIid));
         tpBuilder.addAugmentation(OvsdbTerminationPointAugmentation.class, tpAugmentationBuilder.build());
         return tpBuilder.build();
@@ -210,14 +209,14 @@ public class NodeListener implements DataTreeChangeListener<K8sNodes> {
 
     private void delTermininationPointForCurNode(ConnectionInfo curConnectionInfo) {
         Node delNode = southboundUtils.createNode(curConnectionInfo);
-        String remote_ip = curConnectionInfo.getRemoteIp().getIpv4Address().getValue();
-        String tunInterface = remote_ip.replaceAll(".","-");
+        String remoteIp = curConnectionInfo.getRemoteIp().getIpv4Address().getValue();
+        String tunInterface = remoteIp.replaceAll(".","-");
         for (ConnectionInfo otherConn:nodeConntionMap.values()) {
             Node otherNode = southboundUtils.createNode(otherConn);
 
             dbProcessor.enqueueOperation(manager -> {
                 InstanceIdentifier<TerminationPoint> tpId =
-                        southboundUtils.createTerminationPointInstanceIdentifier(otherNode,tunInterface);
+                     southboundUtils.createTerminationPointInstanceIdentifier(otherNode,tunInterface);
                 manager.addDeleteOperationToTxChain(LogicalDatastoreType.CONFIGURATION,tpId);
             });
         }

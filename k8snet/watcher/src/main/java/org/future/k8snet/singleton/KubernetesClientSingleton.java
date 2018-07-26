@@ -9,14 +9,17 @@ package org.future.k8snet.singleton;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import javax.annotation.Nonnull;
-
 import io.fabric8.kubernetes.api.model.Node;
 import io.fabric8.kubernetes.api.model.NodeAddress;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
+
+import java.util.ArrayList;
+import java.util.List;
+import javax.annotation.Nonnull;
+
 import org.future.k8snet.util.DbUtil;
 import org.future.k8snet.watcher.NodeWatcher;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
@@ -36,10 +39,6 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.coe.northbound.k8s.node.rev
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.List;
-
 
 public class KubernetesClientSingleton implements ClusterSingletonService {
     private static final Logger LOG = LoggerFactory.getLogger(KubernetesClientSingleton.class);
@@ -66,8 +65,8 @@ public class KubernetesClientSingleton implements ClusterSingletonService {
 
     public void instantiateServiceInstance() {
         Config config = new ConfigBuilder().withMasterUrl(k8sApiserverConfig.getScheme()
-                + "://"+k8sApiserverConfig.getMasterIp().getIpv4Address().getValue()
-                + ":"+k8sApiserverConfig.getPort()
+                + "://" + k8sApiserverConfig.getMasterIp().getIpv4Address().getValue()
+                + ":" + k8sApiserverConfig.getPort()
                 + "/").build();
                 //new ConfigBuilder()
                 //.withMasterUrl("https://" + cluster.getEndpoint())
@@ -96,18 +95,18 @@ public class KubernetesClientSingleton implements ClusterSingletonService {
 
         List<Node> nodeList = client.nodes().list().getItems();
         List<K8sNodes> k8sNodesList = new ArrayList<K8sNodes>();
-        for (Node node:nodeList ) {
+        for (Node node:nodeList) {
             K8sNodesBuilder k8sNodesBuilder = new K8sNodesBuilder();
             for (NodeAddress nodeAddress:node.getStatus().getAddresses()) {
-                if( nodeAddress.getType().equals("InternalIP")) {
+                if (nodeAddress.getType().equals("InternalIP")) {
                     k8sNodesBuilder.setInternalIpAddress(new IpAddress(new Ipv4Address(nodeAddress.getAddress())));
                 }
-                if( nodeAddress.getType().equals("ExternalIp")) {
+                if (nodeAddress.getType().equals("ExternalIp")) {
                     k8sNodesBuilder.setExternalIpAddress(new IpAddress(new Ipv4Address(nodeAddress.getAddress())));
                 }
             }
             k8sNodesBuilder.setUid(new Uuid(node.getStatus().getNodeInfo().getSystemUUID()))
-            .setHostName(node.getMetadata().getName());
+                .setHostName(node.getMetadata().getName());
             k8sNodesList.add(k8sNodesBuilder.build());
         }
         k8sNodesInfoBuilder.setK8sNodes(k8sNodesList);

@@ -39,10 +39,10 @@ public class NodeWatcher {
         this.client.nodes().watch(new Watcher<Node>() {
             public void eventReceived(Action action, Node node) {
                 boolean errorFlag = false;
-                LOG.debug(action+",node"+node);
+                LOG.debug(action + ",node" + node);
                 InstanceIdentifier<K8sNodes> id = buildK8sNodeInstanceIdentifier(node);
                 WriteTransaction tx = dataBroker.newWriteOnlyTransaction();
-                switch(action) {
+                switch (action) {
                     case ADDED:
                         tx.put(LogicalDatastoreType.CONFIGURATION,id,buildK8sNodes(node));
                         break;
@@ -55,13 +55,15 @@ public class NodeWatcher {
                     case ERROR:
                         LOG.debug("action is ERROR");
                         break;
+                    default :
+                        LOG.debug("DBOper is unknown!");
                 }
                 DbUtil.doSubmit(tx);
 
             }
 
-            public void onClose(KubernetesClientException e) {
-                LOG.info("client.nodes().watch OnClose:"+e);
+            public void onClose(KubernetesClientException clientExcept) {
+                LOG.info("client.nodes().watch OnClose:" + clientExcept);
             }
         });
         LOG.info("new NodeWatcher");
@@ -70,10 +72,10 @@ public class NodeWatcher {
     private K8sNodes buildK8sNodes(Node node) {
         K8sNodesBuilder k8sNodesBuilder = new K8sNodesBuilder();
         for (NodeAddress nodeAddress:node.getStatus().getAddresses()) {
-            if( nodeAddress.getType().equals("InternalIP")) {
+            if (nodeAddress.getType().equals("InternalIP")) {
                 k8sNodesBuilder.setInternalIpAddress(new IpAddress(new Ipv4Address(nodeAddress.getAddress())));
             }
-            if( nodeAddress.getType().equals("ExternalIp")) {
+            if (nodeAddress.getType().equals("ExternalIp")) {
                 k8sNodesBuilder.setExternalIpAddress(new IpAddress(new Ipv4Address(nodeAddress.getAddress())));
             }
         }
@@ -81,6 +83,7 @@ public class NodeWatcher {
                 .setHostName(node.getMetadata().getName());
         return k8sNodesBuilder.build();
     }
+
     private InstanceIdentifier<K8sNodes> buildK8sNodeInstanceIdentifier(Node node) {
         return InstanceIdentifier.create(K8sNodesInfo.class)
                 .child(K8sNodes.class,new K8sNodesKey(new Uuid(node.getStatus().getNodeInfo().getSystemUUID())));

@@ -256,7 +256,7 @@ public class TransactionChainManager implements TransactionChainListener, AutoCl
     }
 
     public <T extends DataObject> CheckedFuture<com.google.common.base.Optional<T>, ReadFailedException>
-    readFromTransaction(final LogicalDatastoreType store, final InstanceIdentifier<T> path) {
+        readFromTransaction(final LogicalDatastoreType store, final InstanceIdentifier<T> path) {
         synchronized (txLock) {
             ensureTransaction();
             if (writeTx == null) {
