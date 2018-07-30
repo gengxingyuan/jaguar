@@ -26,4 +26,8 @@
     后续SDNLAB计划提供一套三节点的云服务器集群,在这套环境里部署K8S供大家测试,验证使用
 
 ## 6. 如何提交代码?
-    具体流程还在梳理,8月1号前发布一份代码提交指导说明.
+    项目的Developer clone项目代码后,请checout到dev分支,在该分支上完成修改并push到gitlab
+    然后登陆gitlab,创建Merge_Request,代码审核通过后,变更会被合并到matser分支
+    
+    具体操作可参考下 https://gitlab.com/help
+    或者 http://www.360doc.com/content/16/0920/17/1073512_592302821.shtml
