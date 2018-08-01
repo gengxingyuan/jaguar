@@ -20,12 +20,18 @@
 ## 4. 如何提交故障和需求?
     登陆https://gitlab.com,打开https://gitlab.com/sdnlab/jaguar
     左侧Issues编辑提交你的问题
-
-## 5. 本地修改代码后,如何验证?
+    
+## 5. 如何参与功能特性的设计和开发？
+    登陆https://gitlab.com,打开https://gitlab.com/sdnlab/jaguar
+    左侧Issues列表或看板里，选择感兴趣的功能，在comments里填写对功能的理解及大概实现思路
+    开会讨论确定实现方案，并确定主要参与者
+    开发的代码提交到dev分支，代码提交完成后，创建Merge_Request，待Code Review通过后，即完成功能开发
+    
+## 6. 本地修改代码后,如何验证?
     当前需要在本地搭建一套K8S,才能进行验证.
     后续SDNLAB计划提供一套三节点的云服务器集群,在这套环境里部署K8S供大家测试,验证使用
 
-## 6. 如何提交代码?
+## 7. 如何提交代码?
     项目的Developer clone项目代码后,请checout到dev分支,在该分支上完成修改并push到gitlab
     然后登陆gitlab,创建Merge_Request,代码审核通过后,变更会被合并到matser分支
     
