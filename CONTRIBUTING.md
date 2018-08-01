@@ -18,12 +18,13 @@
     已经验证可连接K8S 1.6版本,计划在10月份发布版本里支持K8S 1.10版本
 
 ## 4. 如何提交故障和需求?
-    登陆https://gitlab.com,打开https://gitlab.com/sdnlab/jaguar
-    左侧Issues编辑提交你的问题
+    登陆[gitlab]: https://gitlab.com ,打开[jaguar项目]: https://gitlab.com/sdnlab/jaguar
+    左侧[Issues]: https://gitlab.com/sdnlab/jaguar/issues 编辑提交你的问题
     
 ## 5. 如何参与功能特性的设计和开发？
-    登陆https://gitlab.com,打开https://gitlab.com/sdnlab/jaguar
-    左侧Issues列表或看板里，选择感兴趣的功能，在comments里填写对功能的理解及大概实现思路
+    登陆[gitlab](https://gitlab.com) 
+    打开[jaguar项目](https://gitlab.com/sdnlab/jaguar)
+    左侧[Issues](https://gitlab.com/sdnlab/jaguar/issues)列表或看板里，选择感兴趣的功能，在comments里填写对功能的理解及大概实现思路
     开会讨论确定实现方案，并确定主要参与者
     开发的代码提交到dev分支，代码提交完成后，创建Merge_Request，待Code Review通过后，即完成功能开发
     
@@ -35,5 +36,5 @@
     项目的Developer clone项目代码后,请checout到dev分支,在该分支上完成修改并push到gitlab
     然后登陆gitlab,创建Merge_Request,代码审核通过后,变更会被合并到matser分支
     
-    具体操作可参考下 https://gitlab.com/help
-    或者 http://www.360doc.com/content/16/0920/17/1073512_592302821.shtml
+    具体操作可参考下[gitlab help](https://gitlab.com/help)
+    或者[使用gitlab做Code Review](http://www.360doc.com/content/16/0920/17/1073512_592302821.shtml)
