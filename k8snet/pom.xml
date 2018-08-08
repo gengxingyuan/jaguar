@@ -24,6 +24,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html INTERNAL
   <modules>
     <module>model</module>
     <module>impl</module>
+    <module>ipam</module>
     <module>cli</module>
     <module>watcher</module>
   </modules>
