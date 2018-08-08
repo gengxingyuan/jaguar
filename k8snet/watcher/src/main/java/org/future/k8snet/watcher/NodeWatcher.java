@@ -62,6 +62,7 @@ public class NodeWatcher {
 
             }
 
+            @Override
             public void onClose(KubernetesClientException clientExcept) {
                 LOG.info("client.nodes().watch OnClose:" + clientExcept);
             }
@@ -86,7 +87,7 @@ public class NodeWatcher {
 
     private InstanceIdentifier<K8sNodes> buildK8sNodeInstanceIdentifier(Node node) {
         return InstanceIdentifier.create(K8sNodesInfo.class)
-                .child(K8sNodes.class,new K8sNodesKey(new Uuid(node.getStatus().getNodeInfo().getSystemUUID())));
+                .child(K8sNodes.class,new K8sNodesKey(new Uuid(node.getMetadata().getUid())));
     }
 
     public void close() {
