@@ -22,6 +22,7 @@ import javax.annotation.Nonnull;
 
 import org.future.k8snet.util.DbUtil;
 import org.future.k8snet.watcher.NodeWatcher;
+import org.future.k8snet.watcher.PodWatcher;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
@@ -49,6 +50,7 @@ public class KubernetesClientSingleton implements ClusterSingletonService {
     private K8sApiserverConfig k8sApiserverConfig;
     private KubernetesClient client;
     private NodeWatcher nodeWatcher;
+    private PodWatcher podWatcher;
 
     public KubernetesClientSingleton(final K8sApiserverConfig k8sApiserverConfig,
                                      final DataBroker dataBroker,
@@ -77,6 +79,7 @@ public class KubernetesClientSingleton implements ClusterSingletonService {
         client = new DefaultKubernetesClient(config);
         k8sNodeSync();
         nodeWatcher = new NodeWatcher(dataBroker, client);
+        podWatcher = new PodWatcher(dataBroker,client);
         LOG.info("k8s node sync instantiateServiceInstance");
     }
 
