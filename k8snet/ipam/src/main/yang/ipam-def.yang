@@ -1,0 +1,53 @@
+module ipam {
+    yang-version 1;
+
+    namespace "org.future.ipam";
+    prefix ipam;
+
+    description
+      "Common configuration for the IPAM.";
+
+    revision "2018-08-07" {
+        description
+            "Initial revision.";
+    }
+
+    import ietf-inet-types {
+        prefix inet;
+        revision-date "2013-07-15";
+    }
+
+    import ietf-yang-types {
+        prefix yang;
+        revision-date "2013-07-15";
+    }
+
+    grouping ipam-attr {
+        leaf type {
+            type string;
+        }
+        leaf network {
+            type string;
+        }
+    }
+
+    container ipam-config {
+        uses ipam-attr;
+    }
+
+    rpc request-address {
+        input {
+            leaf pod-uid {
+                type yang:uuid;
+            }
+
+        }
+
+        output {
+            leaf ipaddr {
+                type inet:ip-address;
+            }
+            uses ipam-attr;
+        }
+    }
+}

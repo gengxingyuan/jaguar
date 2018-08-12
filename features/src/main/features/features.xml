@@ -34,6 +34,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     <feature version='${ovsdb.version}'>odl-ovsdb-southbound-impl</feature>
     <bundle>mvn:org.opendaylight.ovsdb/utils.mdsal-utils/${ovsdb.version}</bundle>
     <bundle>mvn:org.opendaylight.ovsdb/utils.southbound-utils/${ovsdb.version}</bundle>
+    <bundle>mvn:org.future/jaguar-ipam/{{VERSION}}</bundle>
     <bundle>mvn:org.future/jaguar-impl/{{VERSION}}</bundle>
   </feature>
   <feature name='odl-jaguar-rest' version='${project.version}' description='OpenDaylight :: jaguar :: REST'>

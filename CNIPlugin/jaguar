@@ -5,6 +5,8 @@ import shlex
 import sys
 import time
 import json
+import urllib2
+import json
 
 import pyroute2
 import ovs_util
@@ -84,6 +86,13 @@ def setup_interface(container_id, cni_netns, cni_ifname,
 
 
 def cni_add(cni_ifname, cni_netns, namespace, pod_name, container_id):
+
+    html = urllib2.urlopen(r'http://127.0.0.1:8181/restconf/operations/ipam:request-address')
+    hjson = json.loads(html.read())
+    print hjson['id']
+    print hjson['rating']['max']
+    print hjson['tags'][0]['name']
+
     ip_address = '172.17.10.2'
     mac_address = '00:00:00:00:00:01'
     gateway_ip = '172.17.10.1'
