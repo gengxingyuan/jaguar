@@ -2,23 +2,23 @@ module k8s-node {
     namespace "urn:opendaylight:coe:northbound:k8s-node";
     prefix "coe";
 
-    revision 2017-08-29 {
-        description "Initial revision";
-    }
-
     import ietf-inet-types {
         prefix inet;
         revision-date "2013-07-15";
     }
-
     import ietf-yang-types {
         prefix yang;
         revision-date "2013-07-15";
     }
 
     organization "OpenDaylight COE Group";
-
     contact "Mohamed ElSerngawy m.elserngawy@gmail.com";
+    revision 2017-08-29 {
+        description "Initial revision";
+    }
+
+
+
 
     container k8s-nodes-info {
         description
@@ -53,6 +53,10 @@ module k8s-node {
             leaf pod-cidr {
                 type string;
                 description "PodCIDR represents the pod IP range assigned to the node.";
+            }
+            leaf max-pod-num{
+            	type string;
+            	description "The max number of pods that this node can support";
             }
         }
     }
