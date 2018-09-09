@@ -82,6 +82,7 @@ public class NodeWatcher {
         }
         k8sNodesBuilder.setUid(new Uuid(node.getStatus().getNodeInfo().getSystemUUID()))
                 .setHostName(node.getMetadata().getName());
+        k8sNodesBuilder.setMaxPodNum(node.getStatus().getCapacity().get("pods").getAmount());
         return k8sNodesBuilder.build();
     }
 

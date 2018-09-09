@@ -4,6 +4,10 @@ module ipam {
     namespace "org.future.ipam";
     prefix ipam;
 
+    import ietf-inet-types {
+        prefix inet;
+        revision-date "2013-07-15";
+    }
     description
       "Common configuration for the IPAM.";
 
@@ -11,15 +15,21 @@ module ipam {
         description
             "Initial revision.";
     }
-
-    import ietf-inet-types {
-        prefix inet;
-        revision-date "2013-07-15";
-    }
+    
+    
 
     grouping ipam-attr {
         leaf type {
-            type string;
+            type enumeration{
+                enum "DEFAULT" {
+                    value 0;
+                    description "Distribute ip address according to the nodes demand";
+                }
+                enum "OTHER" {
+                    value 2;
+                    description "Other distribution method";
+                }
+            }
         }
         leaf network {
             type string;
@@ -29,7 +39,18 @@ module ipam {
     container ipam-config {
         uses ipam-attr;
     }
-
+    
+    rpc config-ip-pool{
+    	input{
+    		uses ipam-attr;
+    	}
+    	output{
+    		leaf result{
+    			type string;
+    		}
+    	}
+    }
+    
     rpc request-address {
         input {
             leaf pod-name {
