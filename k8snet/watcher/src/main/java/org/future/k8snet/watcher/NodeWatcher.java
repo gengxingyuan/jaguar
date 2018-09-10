@@ -80,7 +80,7 @@ public class NodeWatcher {
                 k8sNodesBuilder.setExternalIpAddress(new IpAddress(new Ipv4Address(nodeAddress.getAddress())));
             }
         }
-        k8sNodesBuilder.setUid(new Uuid(node.getStatus().getNodeInfo().getSystemUUID()))
+        k8sNodesBuilder.setUid(new Uuid(node.getMetadata().getUid()))
                 .setHostName(node.getMetadata().getName());
         k8sNodesBuilder.setMaxPodNum(node.getStatus().getCapacity().get("pods").getAmount());
         return k8sNodesBuilder.build();
