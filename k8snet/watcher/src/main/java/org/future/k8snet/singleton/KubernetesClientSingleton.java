@@ -62,7 +62,7 @@ public class KubernetesClientSingleton implements ClusterSingletonService {
     }
 
     public void close() {
-
+        LOG.info("KubernetesClientSingleton closed!");
     }
 
     public void instantiateServiceInstance() {
@@ -108,8 +108,9 @@ public class KubernetesClientSingleton implements ClusterSingletonService {
                     k8sNodesBuilder.setExternalIpAddress(new IpAddress(new Ipv4Address(nodeAddress.getAddress())));
                 }
             }
-            k8sNodesBuilder.setUid(new Uuid(node.getStatus().getNodeInfo().getSystemUUID()))
+            k8sNodesBuilder.setUid(new Uuid(node.getMetadata().getUid()))
                 .setHostName(node.getMetadata().getName());
+            k8sNodesBuilder.setMaxPodNum(node.getStatus().getCapacity().get("pods").getAmount());
             k8sNodesList.add(k8sNodesBuilder.build());
         }
         k8sNodesInfoBuilder.setK8sNodes(k8sNodesList);
