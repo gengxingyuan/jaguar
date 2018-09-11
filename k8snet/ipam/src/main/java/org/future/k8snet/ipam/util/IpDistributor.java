@@ -12,8 +12,8 @@ import java.util.List;
 import java.util.Stack;
 
 /**
+ * ip distribute implmentation.
  * @author Zhi Yi Fang
- *
  */
 public class IpDistributor {
 
@@ -25,10 +25,13 @@ public class IpDistributor {
     private class Node {
         private int val;
         private int hostBit;
-        private Node left, right, root;
+        private Node left;
+        private Node right;
+        private Node root;
+
         private boolean distributed;
 
-        public Node(int val, int hostBit) {
+        Node(int val, int hostBit) {
             this.val = val;
             this.hostBit = hostBit;
         }
@@ -56,27 +59,27 @@ public class IpDistributor {
     }
 
     /**
-     * Distribute Ip according to the host bit
-     * @param hostBit
-     * @return
+     * Distribute Ip according to the host bit.
+     * @param hostBit - bit count
+     * @return ip string
      */
     public String distributeIP(int hostBit) {
-        int result = distributeIP(root, hostBit);
+        int result = allocateIP(root, hostBit);
         return getDistributedResult(result, hostBit);
     }
+
     /**
-     * Get the available ip blocks in this tree
-     * @return
+     * Get the available ip blocks in this tree.
+     * @return ip blocks
      */
-    public List<String> getAvailableIpBlocks(){
+    public List<String> getAvailableIpBlocks() {
         List<String> ipBlocks = new ArrayList<String>();
         searchTree(root, ipBlocks);
         return ipBlocks;
     }
-    
+
     private void searchTree(Node root, List<String> ipBlocks) {
-        while(!root.distributed) {
-            
+        while (!root.distributed) {
             Node right = root.right;
             root = root.left;
             int vals = 0;
@@ -121,23 +124,24 @@ public class IpDistributor {
         return ipValue;
     }
 
-    private int distributeIP(Node x, int hostBit) {
-        if (x == null)
+    private int allocateIP(Node node, int hostBit) {
+        if (node == null) {
             return -1;
-        if (x.hostBit > hostBit) {
-            int childBit = x.hostBit - 1;
-            x.left = new Node(0, childBit);
-            x.right = new Node(1, childBit);
-            x.left.root = x;
-            x.right.root = x;
-            return distributeIP(x.left, hostBit);
         }
-        else {
-            x.distributed = true;
+
+        if (node.hostBit > hostBit) {
+            int childBit = node.hostBit - 1;
+            node.left = new Node(0, childBit);
+            node.right = new Node(1, childBit);
+            node.left.root = node;
+            node.right.root = node;
+            return allocateIP(node.left, hostBit);
+        } else {
+            node.distributed = true;
             int vals = 0;
-            while (x.root != null) {
-                vals += x.val * Math.pow(2, x.hostBit);
-                x = x.root;
+            while (node.root != null) {
+                vals += node.val * Math.pow(2, node.hostBit);
+                node = node.root;
             }
             return vals;
         }

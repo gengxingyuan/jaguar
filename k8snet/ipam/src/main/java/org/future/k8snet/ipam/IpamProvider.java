@@ -43,23 +43,25 @@ public class IpamProvider implements IpamService {
     public Future<RpcResult<ConfigIpPoolOutput>> configIpPool(ConfigIpPoolInput input) {
         ConfigIpPoolOutputBuilder poolOutputBuilder = new ConfigIpPoolOutputBuilder();
         switch (input.getType()) {
-        case DEFAULT:
-            String ipBlock = input.getNetwork();
-            if (checkIpBlocks(ipBlock)) {
-                // Write the ip tool into datastore
-                InstanceIdentifier<IpamConfig> id = InstanceIdentifier.create(IpamConfig.class);
-                WriteTransaction write = dataBroker.newWriteOnlyTransaction();
-                IpamConfigBuilder configBuilder = new IpamConfigBuilder();
-                configBuilder.setNetwork(ipBlock);
-                configBuilder.setType(input.getType());
-                write.put(LogicalDatastoreType.CONFIGURATION,id, configBuilder.build());
-                poolOutputBuilder.setResult("Success");
-            } else {
-                poolOutputBuilder.setResult("Please input ip pool in the correct format like '10.0.0.0/8' ");
-            }
-            break;
-        case OTHER:
-            break;
+            case DEFAULT:
+                String ipBlock = input.getNetwork();
+                if (checkIpBlocks(ipBlock)) {
+                    // Write the ip tool into datastore
+                    InstanceIdentifier<IpamConfig> id = InstanceIdentifier.create(IpamConfig.class);
+                    WriteTransaction write = dataBroker.newWriteOnlyTransaction();
+                    IpamConfigBuilder configBuilder = new IpamConfigBuilder();
+                    configBuilder.setNetwork(ipBlock);
+                    configBuilder.setType(input.getType());
+                    write.put(LogicalDatastoreType.CONFIGURATION,id, configBuilder.build());
+                    poolOutputBuilder.setResult("Success");
+                } else {
+                    poolOutputBuilder.setResult("Please input ip pool in the correct format like '10.0.0.0/8' ");
+                }
+                break;
+            case OTHER:
+                break;
+            default:
+                break;
         }
         return RpcResultBuilder.success(poolOutputBuilder.build()).buildFuture();
     }
@@ -71,14 +73,14 @@ public class IpamProvider implements IpamService {
     }
 
     /**
-     * Check if the ip block is legal
-     * @param text
-     * @return
+     * Check if the ip block is legal.
+     * @param ipb,ip block
+     * @return boolean
      */
-    private boolean checkIpBlocks(String text) {
-        if (text != null && !text.isEmpty()) {
+    private boolean checkIpBlocks(String ipb) {
+        if (ipb != null && !ipb.isEmpty()) {
             String regex = "^(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|[1-9])\\.(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|\\d)\\.(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|\\d)\\.(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|\\d)/([1-9]|[1-2]\\d|30|31)$";
-            if (text.matches(regex)) {
+            if (ipb.matches(regex)) {
                 return true;
             } else {
                 return false;

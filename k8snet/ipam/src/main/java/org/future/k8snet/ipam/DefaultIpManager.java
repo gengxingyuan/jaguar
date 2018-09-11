@@ -7,26 +7,27 @@
  */
 package org.future.k8snet.ipam;
 
-import org.future.k8snet.ipam.util.IpDistributor;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+import org.future.k8snet.ipam.util.IpDistributor;
+
 /**
- * Default IP address manager. 
- * The default IP address manager allocates IP address blocks according to the needs of each Node to improve address utilization.
+ * Default IP address manager.
+ * The default IP address manager allocates IP address blocks according to the needs of each Node
+ * to improve address utilization.
  * @author Zhi Yi Fang
  *
  */
 public class DefaultIpManager {
     private List<String> availableIpBlocks;
     private IpDistributor ipDistributor;
-    
+
     /**
-     * Get the available Ip blocks
-     * @return
+     * Get the available Ip blocks.
+     * @return list of ip blocks
      */
     public List<String> getAvailableIpBlocks() {
         return availableIpBlocks;
@@ -36,39 +37,38 @@ public class DefaultIpManager {
         this.availableIpBlocks = new ArrayList<>();
         availableIpBlocks.add(ipBlock);
     }
-    
+
     /**
-     * Find the most suitable ip blocks according to the demand
-     * @param demand
-     * @return
+     * Find the most suitable ip blocks according to the demand.
+     * @return cidr ip string
      */
     public String distributeIp(int demand) {
-        int demandBit = (int) Math.ceil((Math.log(demand+2)/Math.log(2)));
+        int demandBit = (int) Math.ceil((Math.log(demand + 2) / Math.log(2)));
         sortIpBlocks(availableIpBlocks);
-        String b="";
-        for(String block:availableIpBlocks) {
-            int host = 32- Integer.valueOf(block.split("/")[1]);
-            if(demandBit == host) {
+        String tmpBlock = "";
+        for (String block:availableIpBlocks) {
+            int host = 32 - Integer.valueOf(block.split("/")[1]);
+            if (demandBit == host) {
                 availableIpBlocks.remove(block);
                 return block;
-            } else if(host > demandBit) {
-                b=block;
+            } else if (host > demandBit) {
+                tmpBlock = block;
                 availableIpBlocks.remove(block);
                 break;
             }
         }
-            if(!b.equals("")) {
-                ipDistributor = new IpDistributor(b);
-                String result = ipDistributor.distributeIP(demandBit);
-                availableIpBlocks.addAll(ipDistributor.getAvailableIpBlocks());
-                sortIpBlocks(availableIpBlocks);
+        if (!tmpBlock.equals("")) {
+            ipDistributor = new IpDistributor(tmpBlock);
+            String result = ipDistributor.distributeIP(demandBit);
+            availableIpBlocks.addAll(ipDistributor.getAvailableIpBlocks());
+            sortIpBlocks(availableIpBlocks);
 
-                return result;
-            }else {
-                return "No Space";
-            }
+            return result;
+        } else {
+            return "No Space";
+        }
     }
-    
+
     private void sortIpBlocks(List<String> availableIpBlocks) {
         Collections.sort(availableIpBlocks,new Comparator<String>() {
 
@@ -76,10 +76,10 @@ public class DefaultIpManager {
             public int compare(String o1, String o2) {
                 Integer obj1 = Integer.valueOf(o1.split("/")[1]);
                 Integer obj2 = Integer.valueOf(o2.split("/")[1]);
-                
+
                 return obj2.compareTo(obj1);
             }
-            
+
         });
     }
 

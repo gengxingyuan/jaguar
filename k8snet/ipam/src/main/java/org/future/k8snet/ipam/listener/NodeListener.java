@@ -7,9 +7,9 @@
  */
 package org.future.k8snet.ipam.listener;
 
+import com.google.common.base.Optional;
 import java.util.Collection;
 import java.util.concurrent.ExecutionException;
-
 import javax.annotation.Nonnull;
 
 import org.future.k8snet.ipam.DefaultIpManager;
@@ -28,9 +28,12 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.coe.northbound.k8s.node.rev
 import org.opendaylight.yangtools.concepts.ListenerRegistration;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 
-import com.google.common.base.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class NodeListener implements DataTreeChangeListener<K8sNodes> {
+
+    private static final Logger LOG = LoggerFactory.getLogger(NodeListener.class);
 
     DefaultIpManager defaultIpManager;
     ListenerRegistration<NodeListener> listenerReg;
@@ -57,29 +60,28 @@ public class NodeListener implements DataTreeChangeListener<K8sNodes> {
             final DataObjectModification<K8sNodes> mod = change.getRootNode();
 
             switch (mod.getModificationType()) {
-            case DELETE:
-                break;
-            case SUBTREE_MODIFIED:
-                break;
-            case WRITE:
-                if(this.defaultIpManager == null) {
-                    initDefaultIpManager(dataBroker);
-                }
-                if (mod.getDataBefore() == null) {
-                    addIpBlockToNode(mod.getDataAfter(), dataBroker);
-                }
-                break;
-            default:
-                break;
+                case DELETE:
+                    break;
+                case SUBTREE_MODIFIED:
+                    break;
+                case WRITE:
+                    if (this.defaultIpManager == null) {
+                        initDefaultIpManager(dataBroker);
+                    }
+                    if (mod.getDataBefore() == null) {
+                        addIpBlockToNode(mod.getDataAfter(), dataBroker);
+                    }
+                    break;
+                default:
+                    break;
             }
         }
     }
 
     /**
-     * Add ip blocks according to its max number of pod
-     * 
-     * @param nodeNew
-     * @param dataBroker
+     * Add ip blocks according to its max number of pod.
+     * @param nodeNew, k8s new node
+     * @param dataBroker,DataBroker
      */
     private void addIpBlockToNode(K8sNodes nodeNew, DataBroker dataBroker) {
         InstanceIdentifier<K8sNodes> nodeId = InstanceIdentifier.builder(K8sNodesInfo.class)
@@ -106,7 +108,7 @@ public class NodeListener implements DataTreeChangeListener<K8sNodes> {
                 this.defaultIpManager = new DefaultIpManager(ipamConfig.getNetwork());
             }
         } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
+            LOG.warn("read datastore fail:",e);
         }
     }
 
