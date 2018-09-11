@@ -7,9 +7,9 @@
  */
 package org.future.k8snet.ipam.listener;
 
+import com.google.common.base.Optional;
 import java.util.Collection;
 import java.util.concurrent.ExecutionException;
-
 import javax.annotation.Nonnull;
 
 import org.future.k8snet.ipam.DefaultIpManager;
@@ -28,86 +28,88 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.coe.northbound.k8s.node.rev
 import org.opendaylight.yangtools.concepts.ListenerRegistration;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 
-import com.google.common.base.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class NodeListener implements DataTreeChangeListener<K8sNodes> {
 
-	DefaultIpManager defaultIpManager;
-	ListenerRegistration<NodeListener> listenerReg;
-	public static final String DEFAULT_IP_POOL = "10.0.0.0/8";
-	private final DataBroker dataBroker;
+    private static final Logger LOG = LoggerFactory.getLogger(NodeListener.class);
 
-	public NodeListener(DataBroker dataBroker) {
-		this.dataBroker = dataBroker;
-	}
+    DefaultIpManager defaultIpManager;
+    ListenerRegistration<NodeListener> listenerReg;
+    public static final String DEFAULT_IP_POOL = "10.0.0.0/8";
+    private final DataBroker dataBroker;
 
-	public void init() {
-		InstanceIdentifier<IpamConfig> id = InstanceIdentifier.create(IpamConfig.class);
-		listenerReg = dataBroker
-				.registerDataTreeChangeListener(new DataTreeIdentifier(LogicalDatastoreType.CONFIGURATION, id), this);
-	}
+    public NodeListener(DataBroker dataBroker) {
+        this.dataBroker = dataBroker;
+    }
 
-	public void close() {
-		listenerReg.close();
-	}
+    public void init() {
+        InstanceIdentifier<IpamConfig> id = InstanceIdentifier.create(IpamConfig.class);
+        listenerReg = dataBroker
+                .registerDataTreeChangeListener(new DataTreeIdentifier(LogicalDatastoreType.CONFIGURATION, id), this);
+    }
 
-	@Override
-	public void onDataTreeChanged(@Nonnull Collection<DataTreeModification<K8sNodes>> changes) {
-		for (DataTreeModification<K8sNodes> change : changes) {
-			final DataObjectModification<K8sNodes> mod = change.getRootNode();
+    public void close() {
+        listenerReg.close();
+    }
 
-			switch (mod.getModificationType()) {
-			case DELETE:
-				break;
-			case SUBTREE_MODIFIED:
-				break;
-			case WRITE:
-				if(this.defaultIpManager == null) {
-					initDefaultIpManager(dataBroker);
-				}
-				if (mod.getDataBefore() == null) {
-					addIpBlockToNode(mod.getDataAfter(), dataBroker);
-				}
-				break;
-			default:
-				break;
-			}
-		}
-	}
+    @Override
+    public void onDataTreeChanged(@Nonnull Collection<DataTreeModification<K8sNodes>> changes) {
+        for (DataTreeModification<K8sNodes> change : changes) {
+            final DataObjectModification<K8sNodes> mod = change.getRootNode();
 
-	/**
-	 * Add ip blocks according to its max number of pod
-	 * 
-	 * @param nodeNew
-	 * @param dataBroker
-	 */
-	private void addIpBlockToNode(K8sNodes nodeNew, DataBroker dataBroker) {
-		InstanceIdentifier<K8sNodes> nodeId = InstanceIdentifier.builder(K8sNodesInfo.class)
-				.child(K8sNodes.class, nodeNew.getKey()).build();
-		WriteTransaction writeTransaction = dataBroker.newWriteOnlyTransaction();
-		K8sNodesBuilder builder = new K8sNodesBuilder();
-		builder.setUid(nodeNew.getUid());
-		String ipBlock = defaultIpManager.distributeIp(Integer.valueOf(nodeNew.getMaxPodNum()));
-		builder.setPodCidr(ipBlock);
-		writeTransaction.merge(LogicalDatastoreType.OPERATIONAL, nodeId, builder.build());
-	}
+            switch (mod.getModificationType()) {
+                case DELETE:
+                    break;
+                case SUBTREE_MODIFIED:
+                    break;
+                case WRITE:
+                    if (this.defaultIpManager == null) {
+                        initDefaultIpManager(dataBroker);
+                    }
+                    if (mod.getDataBefore() == null) {
+                        addIpBlockToNode(mod.getDataAfter(), dataBroker);
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
 
-	private void initDefaultIpManager(DataBroker dataBroker) {
-		InstanceIdentifier<IpamConfig> path = InstanceIdentifier.create(IpamConfig.class);
-		ReadOnlyTransaction readOnlyTransaction = dataBroker.newReadOnlyTransaction();
-		try {
-			Optional<IpamConfig> optional = readOnlyTransaction.read(LogicalDatastoreType.CONFIGURATION, path).get();
+    /**
+     * Add ip blocks according to its max number of pod.
+     * @param nodeNew, k8s new node
+     * @param dataBroker,DataBroker
+     */
+    private void addIpBlockToNode(K8sNodes nodeNew, DataBroker dataBroker) {
+        InstanceIdentifier<K8sNodes> nodeId = InstanceIdentifier.builder(K8sNodesInfo.class)
+                .child(K8sNodes.class, nodeNew.getKey()).build();
+        WriteTransaction writeTransaction = dataBroker.newWriteOnlyTransaction();
+        K8sNodesBuilder builder = new K8sNodesBuilder();
+        builder.setUid(nodeNew.getUid());
+        String ipBlock = defaultIpManager.distributeIp(Integer.valueOf(nodeNew.getMaxPodNum()));
+        builder.setPodCidr(ipBlock);
+        writeTransaction.merge(LogicalDatastoreType.OPERATIONAL, nodeId, builder.build());
+    }
 
-			// If the user didn't set ip pool use default
-			if (!optional.isPresent()) {
-				this.defaultIpManager = new DefaultIpManager(DEFAULT_IP_POOL);
-			} else {
-				IpamConfig ipamConfig = optional.get();
-				this.defaultIpManager = new DefaultIpManager(ipamConfig.getNetwork());
-			}
-		} catch (InterruptedException | ExecutionException e) {
-			e.printStackTrace();
-		}
-	}
+    private void initDefaultIpManager(DataBroker dataBroker) {
+        InstanceIdentifier<IpamConfig> path = InstanceIdentifier.create(IpamConfig.class);
+        ReadOnlyTransaction readOnlyTransaction = dataBroker.newReadOnlyTransaction();
+        try {
+            Optional<IpamConfig> optional = readOnlyTransaction.read(LogicalDatastoreType.CONFIGURATION, path).get();
+
+            // If the user didn't set ip pool use default
+            if (!optional.isPresent()) {
+                this.defaultIpManager = new DefaultIpManager(DEFAULT_IP_POOL);
+            } else {
+                IpamConfig ipamConfig = optional.get();
+                this.defaultIpManager = new DefaultIpManager(ipamConfig.getNetwork());
+            }
+        } catch (InterruptedException | ExecutionException e) {
+            LOG.warn("read datastore fail:",e);
+        }
+    }
 
 }
