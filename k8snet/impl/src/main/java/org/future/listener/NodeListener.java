@@ -54,6 +54,7 @@ import org.slf4j.LoggerFactory;
 public class NodeListener implements DataTreeChangeListener<K8sNodes> {
     private static final Logger LOG = LoggerFactory.getLogger(NodeListener.class);
     public static final String BRIDGE_NAME = "br0";
+    public static final int OVSDB_PORT = 6641;
     ExecutorService executor = Executors.newSingleThreadExecutor();
     private OperationProcessor dbProcessor;
     private ListenerRegistration<NodeListener> listenerRegistration;
@@ -120,7 +121,7 @@ public class NodeListener implements DataTreeChangeListener<K8sNodes> {
     private synchronized void add(K8sNodes nodeNew) {
         LOG.debug("k8sNode added - ovsdb node connecting!" + nodeNew);
         ConnectionInfo connectionInfo = OvsdbUtil.getConnectionInfo(
-                String.valueOf(nodeNew.getInternalIpAddress().getValue()),6640);
+                String.valueOf(nodeNew.getInternalIpAddress().getValue()),OVSDB_PORT);
         Node node = southboundUtils.createNode(connectionInfo);
         southboundUtils.connectOvsdbNode(connectionInfo,2000);
         NodeId nodeId = southboundUtils.createNodeId(connectionInfo.getRemoteIp(),connectionInfo.getRemotePort());
@@ -146,7 +147,7 @@ public class NodeListener implements DataTreeChangeListener<K8sNodes> {
     private synchronized void delete(K8sNodes nodeOld) {
         LOG.info("k8sNode deleted !" + nodeOld);
         ConnectionInfo connectionInfo = OvsdbUtil.getConnectionInfo(
-                nodeOld.getInternalIpAddress().getIpv4Address().getValue(),6640);
+                nodeOld.getInternalIpAddress().getIpv4Address().getValue(),OVSDB_PORT);
         Node node = southboundUtils.createNode(connectionInfo);
         NodeId nodeId = southboundUtils.createNodeId(connectionInfo.getRemoteIp(),connectionInfo.getRemotePort());
         final InstanceIdentifier<Node> iid = SouthboundUtils.createInstanceIdentifier(connectionInfo);
