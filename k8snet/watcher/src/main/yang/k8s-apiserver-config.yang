@@ -20,6 +20,7 @@ module k8s-apiserver-config {
     container k8s-apiserver-config {
         leaf scheme {
             type string;
+            default "https";
         }
         leaf master-ip {
             type inet:ip-address;
@@ -27,7 +28,19 @@ module k8s-apiserver-config {
         }
         leaf port {
             type uint16;
-            default 8080;
+            default 6443;
+        }
+        leaf token {
+            type string;
+        }
+        leaf ca-cert-data {
+            type string;
+        }
+        leaf client-cert-data {
+            type string;
+        }
+        leaf client-key-data {
+            type string;
         }
     }
 }
