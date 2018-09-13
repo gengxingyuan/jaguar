@@ -7,11 +7,34 @@ import time
 import json
 import urllib2
 import json
-
+import subprocess
 import pyroute2
-import ovs_util
 
 CNI_VERSION = "0.3.1"
+
+def call_popen(cmd):
+    child = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+    output = child.communicate()
+    if child.returncode:
+        raise RuntimeError("Fatal error executing %s" % (cmd))
+    if len(output) == 0 or output[0] is None:
+        output = ""
+    else:
+        output = output[0].decode("utf8").strip()
+    return output
+
+
+def call_prog(prog, args_list):
+    cmd = [prog, "--timeout=5", "-vconsole:off"] + args_list
+    return call_popen(cmd)
+
+
+def ovs_vsctl(*args):
+    return call_prog("ovs-vsctl", list(args))
+
+
+def ovs_ofctl(*args):
+    return call_prog("ovs-ofctl", list(args))
 
 class JAGUARCNIException(Exception):
 
@@ -61,7 +84,7 @@ def setup_interface(container_id, cni_netns, cni_ifname,
             veth_inside_iface.net_ns_fd = container_id
 
     except Exception as e:
-        raise JAGUARCNIException(100, "veth pair setup failure")
+        raise JAGUARCNIException(100, "veth pair setup failure" + str(e))
 
     try:
         # Change the name of veth_inside to $cni_ifname
@@ -82,16 +105,10 @@ def setup_interface(container_id, cni_netns, cni_ifname,
     except Exception as e:
         if veth_outside_idx:
             pyroute2.IPRoute().link('del', index=veth_outside_idx)
-        raise JAGUARCNIException(100, "container interface setup failure")
+        raise JAGUARCNIException(100, "container interface setup failure" + str(e))
 
 
 def cni_add(cni_ifname, cni_netns, namespace, pod_name, container_id):
-
-    html = urllib2.urlopen(r'http://127.0.0.1:8181/restconf/operations/ipam:request-address')
-    hjson = json.loads(html.read())
-    print hjson['id']
-    print hjson['rating']['max']
-    print hjson['tags'][0]['name']
 
     ip_address = '172.17.10.2'
     mac_address = '00:00:00:00:00:01'
@@ -109,8 +126,8 @@ def cni_add(cni_ifname, cni_netns, namespace, pod_name, container_id):
                   'external_ids:attached_mac=%s' % mac_address,
                   'external_ids:iface-id=%s' % iface_id,
                   'external_ids:ip_address=%s' % ip_address)
-    except Exception:
-        raise JAGUARCNIException(106, "failure in plugging pod interface")
+    except Exception as e:
+        raise JAGUARCNIException(106, "failure in plugging pod interface" + str(e))
 
     output = json.dumps({'ip_address': ip_address,
                         'gateway_ip': gateway_ip, 'mac_address': mac_address})
