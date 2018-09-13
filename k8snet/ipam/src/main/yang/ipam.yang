@@ -19,7 +19,7 @@ module ipam {
     
 
     grouping ipam-attr {
-        leaf type {
+        leaf scheme-type {
             type enumeration{
                 enum "DEFAULT" {
                     value 0;
@@ -36,8 +36,16 @@ module ipam {
         }
     }
 
+    grouping ip-schemes{
+    	list ip-schemes{
+    		description "List of ip manager scheme";
+    		key "scheme-type";
+    		uses ipam-attr;
+    	}
+    }
     container ipam-config {
-        uses ipam-attr;
+    	description "Ip manager scheme information";
+    	uses ip-schemes;
     }
     
     rpc config-ip-pool{
@@ -50,7 +58,25 @@ module ipam {
     		}
     	}
     }
-    
+    rpc request-node-ip-block{
+    	description "Get the distributed ip block according to the node's uuid";
+    	input{
+    		leaf node-uid{
+    			type string;
+    		}
+    	}
+    	output{
+    		leaf ip-block{
+    			type string;
+    		}
+    	}
+    }
+    rpc get-current-settings{
+    	description "Get current ip distribution settings";
+    	output {
+    		uses ip-schemes;
+    	}
+    }
     rpc request-address {
         input {
             leaf pod-name {
@@ -66,7 +92,7 @@ module ipam {
             leaf mac {
                 type string;
             }
-            uses ipam-attr;
+//            uses ipam-attr;
         }
     }
 }

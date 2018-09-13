@@ -13,7 +13,7 @@
         odl:type="default" />
 
     <bean id="ipamProvider" class="org.future.k8snet.ipam.IpamProvider"
-        destroy-method="close">
+        init-method="init" destroy-method="close">
         <argument ref="dataBroker" />
     </bean>
 
