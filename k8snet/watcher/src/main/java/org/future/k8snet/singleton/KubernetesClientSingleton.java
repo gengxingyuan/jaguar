@@ -69,7 +69,13 @@ public class KubernetesClientSingleton implements ClusterSingletonService {
         Config config = new ConfigBuilder().withMasterUrl(k8sApiserverConfig.getScheme()
                 + "://" + k8sApiserverConfig.getMasterIp().getIpv4Address().getValue()
                 + ":" + k8sApiserverConfig.getPort()
-                + "/").build();
+                + "/")
+                .withTrustCerts(true)
+                .withOauthToken(k8sApiserverConfig.getToken())
+                .withCaCertData(k8sApiserverConfig.getCaCertData())
+                .withClientCertData(k8sApiserverConfig.getClientCertData())
+                .withClientKeyData(k8sApiserverConfig.getClientKeyData())
+                .build();
                 //new ConfigBuilder()
                 //.withMasterUrl("https://" + cluster.getEndpoint())
                 //.withCaCertData(cluster.getMasterAuth().getClusterCaCertificate())
