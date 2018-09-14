@@ -6,10 +6,14 @@
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
 package org.future.k8snet.ipam.listener;
-
 import com.google.common.base.Optional;
+import com.google.common.util.concurrent.CheckedFuture;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.MoreExecutors;
 import java.util.Collection;
 import java.util.concurrent.ExecutionException;
+
 import javax.annotation.Nonnull;
 
 import org.future.k8snet.ipam.DefaultIpManager;
@@ -21,15 +25,21 @@ import org.opendaylight.controller.md.sal.binding.api.DataTreeModification;
 import org.opendaylight.controller.md.sal.binding.api.ReadOnlyTransaction;
 import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
+import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFailedException;
+import org.opendaylight.mdsal.common.api.OptimisticLockFailedException;
+import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.IpamAttr.SchemeType;
 import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.IpamConfig;
+import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.ip.schemes.IpSchemes;
+import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.ip.schemes.IpSchemesKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.coe.northbound.k8s.node.rev170829.K8sNodesInfo;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.coe.northbound.k8s.node.rev170829.k8s.nodes.info.K8sNodes;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.coe.northbound.k8s.node.rev170829.k8s.nodes.info.K8sNodesBuilder;
 import org.opendaylight.yangtools.concepts.ListenerRegistration;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+
 
 public class NodeListener implements DataTreeChangeListener<K8sNodes> {
 
@@ -45,9 +55,9 @@ public class NodeListener implements DataTreeChangeListener<K8sNodes> {
     }
 
     public void init() {
-        InstanceIdentifier<IpamConfig> id = InstanceIdentifier.create(IpamConfig.class);
-        listenerReg = dataBroker
-                .registerDataTreeChangeListener(new DataTreeIdentifier(LogicalDatastoreType.CONFIGURATION, id), this);
+        InstanceIdentifier<K8sNodes> id = InstanceIdentifier.builder(K8sNodesInfo.class).child(K8sNodes.class).build();
+        listenerReg = dataBroker.registerDataTreeChangeListener(
+                new DataTreeIdentifier(LogicalDatastoreType.CONFIGURATION, id), NodeListener.this);
     }
 
     public void close() {
@@ -78,11 +88,12 @@ public class NodeListener implements DataTreeChangeListener<K8sNodes> {
         }
     }
 
-    /**
-     * Add ip blocks according to its max number of pod.
-     * @param nodeNew, k8s new node
-     * @param dataBroker,DataBroker
-     */
+      /**
+       * Add ip blocks according to its max number of pod.
+       * @param nodeNew,
+       *          k8s new node
+       * @param dataBroker,DataBroker
+       */
     private void addIpBlockToNode(K8sNodes nodeNew, DataBroker dataBroker) {
         InstanceIdentifier<K8sNodes> nodeId = InstanceIdentifier.builder(K8sNodesInfo.class)
                 .child(K8sNodes.class, nodeNew.getKey()).build();
@@ -91,24 +102,47 @@ public class NodeListener implements DataTreeChangeListener<K8sNodes> {
         builder.setUid(nodeNew.getUid());
         String ipBlock = defaultIpManager.distributeIp(Integer.valueOf(nodeNew.getMaxPodNum()));
         builder.setPodCidr(ipBlock);
-        writeTransaction.merge(LogicalDatastoreType.OPERATIONAL, nodeId, builder.build());
+        writeTransaction.merge(LogicalDatastoreType.CONFIGURATION, nodeId, builder.build());
+        CheckedFuture<Void, TransactionCommitFailedException> submit = writeTransaction.submit();
+
+        Futures.addCallback(submit, new FutureCallback<Void>() {
+
+            @Override
+            public void onSuccess(final Void result) {
+            // Committed successfully
+                LOG.debug("Add ip block to {} -- Committedsuccessfully ", nodeNew.getHostName());
+            }
+
+            @Override
+            public void onFailure(final Throwable throwable) {
+            // Transaction failed
+
+                if (throwable instanceof OptimisticLockFailedException) {
+                // Failed because of concurrent transaction modifying same
+                // data
+                    LOG.error("Add ip block -- Failed because of concurrent transaction modifying same data");
+                } else {
+                   // Some other type of TransactionCommitFailedException
+                    LOG.error("Add ip block -- Some other type of TransactionCommitFailedException", throwable);
+                }
+            }
+            }, MoreExecutors.directExecutor());
     }
 
     private void initDefaultIpManager(DataBroker dataBroker) {
-        InstanceIdentifier<IpamConfig> path = InstanceIdentifier.create(IpamConfig.class);
+        InstanceIdentifier<IpSchemes> path = InstanceIdentifier.create(IpamConfig.class)
+                .child(IpSchemes.class, new IpSchemesKey(SchemeType.DEFAULT));
         ReadOnlyTransaction readOnlyTransaction = dataBroker.newReadOnlyTransaction();
         try {
-            Optional<IpamConfig> optional = readOnlyTransaction.read(LogicalDatastoreType.CONFIGURATION, path).get();
-
+            Optional<IpSchemes> optional = readOnlyTransaction.read(LogicalDatastoreType.CONFIGURATION, path).get();
             // If the user didn't set ip pool use default
             if (!optional.isPresent()) {
                 this.defaultIpManager = new DefaultIpManager(DEFAULT_IP_POOL);
             } else {
-                IpamConfig ipamConfig = optional.get();
-                this.defaultIpManager = new DefaultIpManager(ipamConfig.getNetwork());
+                this.defaultIpManager = new DefaultIpManager(optional.get().getNetwork());
             }
         } catch (InterruptedException | ExecutionException e) {
-            LOG.warn("read datastore fail:",e);
+            LOG.warn("read datastore fail:", e);
         }
     }
 

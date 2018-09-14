@@ -54,7 +54,7 @@ class JAGUARCNIException(Exception):
 
 
 def setup_interface(container_id, cni_netns, cni_ifname,
-                    mac_address, ip_address, gateway_ip):
+                    mac_address, ip_address, mask, gateway_ip):
     try:
         if not os.path.exists("/var/run/netns"):
             os.makedirs("/var/run/netns")
@@ -94,8 +94,8 @@ def setup_interface(container_id, cni_netns, cni_ifname,
         with ns_ipdb.interfaces[veth_inside] as veth_inside_iface:
             veth_inside_iface.ifname = cni_ifname
             veth_inside_iface.address = mac_address
-            veth_inside_iface.mtu = config.get_option('mtu')
-            veth_inside_iface.add_ip(ip_address)
+            veth_inside_iface.mtu = 1400
+            veth_inside_iface.add_ip(ip_address,mask)
             veth_inside_iface.up()
 
         # Set the gateway
@@ -110,12 +110,14 @@ def setup_interface(container_id, cni_netns, cni_ifname,
 
 def cni_add(cni_ifname, cni_netns, namespace, pod_name, container_id):
 
-    ip_address = '172.17.10.2'
-    mac_address = '00:00:00:00:00:01'
-    gateway_ip = '172.17.10.1'
+    ip_address = u'172.17.10.2'.encode()
+    mac_address = u'00:00:00:00:00:01'.encode()
+    gateway_ip = u'172.17.10.1'.encode()
+
+    mask = 24
 
     veth_outside = setup_interface(container_id, cni_netns, cni_ifname,
-                                   mac_address, ip_address,
+                                   mac_address, ip_address, mask,
                                    gateway_ip)
 
     iface_id = "%s_%s" % (namespace, pod_name)
