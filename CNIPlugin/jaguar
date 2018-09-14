@@ -110,13 +110,14 @@ def setup_interface(container_id, cni_netns, cni_ifname,
 
 def cni_add(cni_ifname, cni_netns, namespace, pod_name, container_id):
 
-    ip_address = '172.17.10.2'
-    mac_address = '00:00:00:00:00:01'
-    gateway_ip = '172.17.10.1'
+    ip_address = u'172.17.10.2'.encode()
+    mac_address = u'00:00:00:00:00:01'.encode()
+    gateway_ip = u'172.17.10.1'.encode()
+
     mask = 24
 
     veth_outside = setup_interface(container_id, cni_netns, cni_ifname,
-                                   mac_address, ip_address, mask
+                                   mac_address, ip_address, mask,
                                    gateway_ip)
 
     iface_id = "%s_%s" % (namespace, pod_name)
