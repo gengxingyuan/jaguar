@@ -5,8 +5,7 @@ import shlex
 import sys
 import time
 import json
-import urllib2
-import json
+import requests
 import subprocess
 import pyroute2
 
@@ -35,6 +34,27 @@ def ovs_vsctl(*args):
 
 def ovs_ofctl(*args):
     return call_prog("ovs-ofctl", list(args))
+
+def post(url, userId, password, data):
+    if userId is None:
+        userId = 'admin'
+
+    if password is None:
+        password = 'admin'
+
+    #print("post request with url " + url)
+    #print("post request with data " + data)
+    headers = {}
+    headers['Content-Type'] = 'application/json'
+    session = requests.session()
+    resp = session.post(url, data.encode('utf-8'), headers=headers, auth=(userId, password))
+
+    # print(resp.raise_for_status())
+    print(resp.headers)
+    if resp.status_code >= 500:
+        print(resp.text)
+
+    return resp
 
 class JAGUARCNIException(Exception):
 
