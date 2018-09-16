@@ -8,6 +8,7 @@ import json
 import requests
 import subprocess
 import pyroute2
+import ConfigParser
 
 CNI_VERSION = "0.3.1"
 
@@ -55,6 +56,54 @@ def post(url, userId, password, data):
         print(resp.text)
 
     return resp
+
+def getCIDRForNode(name):
+    url = 'http://192.168.139.10:8181/'+'restconf/operations/ipam:request-node-ip-block'
+    data = '{\"request-node-ip-block\": {\"input\": {\"node-uid\": \"asfas\"}}}'
+    resp = post(url,'admin','admin',data)
+    
+    return [global_cidr,local_cidr]
+
+def allocateIpForPod():
+    allocated_ip = '127.0.0.1'
+    cidrs = ['192.168.0.0/16','192.168.11.0/24']
+    cf = ConfigParser.ConfigParser()
+    cf.read("/etc/jaguar/ip.conf")
+    if not cf.has_section('global'):
+        cf.add_section('global')
+        cf.add_section('local')
+        cf.set("global", "cidr", cidrs[0])
+        cf.set("local", "cidr", cidrs[1])
+        global_cidr = cidrs[0]
+        local_cidr = cidrs[1]
+    else:
+        global_cidr = cf.get("global", "cidr")
+        local_cidr = cf.get("local", "cidr")
+
+    local_net = IPNetwork(local_cidr)
+    ip_list = list(local_net)
+
+    if not cf.has_option('local','ips'):
+        allocated_ip = str(ip_list[1])
+        ips_str = str(ip_list[0]) + ',' + str(ip_list[1])
+        print(ips_str)
+    else:
+        ips_str = cf.get('local','ips')
+        allocated_ip = str(ip_list[len(ips_str.split(','))])
+        ips_str = ips_str + ',' + allocated_ip
+
+    cf.set("local", "ips", ips_str)
+
+    cf.write(open("/etc/jaguar/ip.conf", "w"))
+    return allocated_ip
+
+def retrieveIp(ip):
+    cf = ConfigParser.ConfigParser()
+    cf.read("/etc/jaguar/ip.conf")
+
+    ips = cf.get("local", "ips")
+
+    cf.write(open("/etc/jaguar/ip.conf", "w"))
 
 class JAGUARCNIException(Exception):
 
