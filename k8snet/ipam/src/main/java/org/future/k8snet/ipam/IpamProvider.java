@@ -14,28 +14,17 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-import org.future.k8snet.ipam.util.IpamData;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.binding.api.ReadOnlyTransaction;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.md.sal.common.api.data.ReadFailedException;
-import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.ConfigIpPoolInput;
-import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.ConfigIpPoolOutput;
-import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.ConfigIpPoolOutputBuilder;
-import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.GetCurrentSettingsOutput;
-import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.GetCurrentSettingsOutputBuilder;
-import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.IpamAttr.SchemeType;
 import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.IpamConfig;
 import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.IpamService;
 import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.RequestNodeIpBlockInput;
 import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.RequestNodeIpBlockOutput;
 import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.RequestNodeIpBlockOutputBuilder;
-import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.ip.schemes.IpSchemes;
-import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.ip.schemes.IpSchemesKey;
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.coe.northbound.k8s.node.rev170829.K8sNodesInfo;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.coe.northbound.k8s.node.rev170829.k8s.nodes.info.K8sNodes;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.coe.northbound.k8s.node.rev170829.k8s.nodes.info.K8sNodesKey;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.opendaylight.yangtools.yang.common.RpcResult;
 import org.opendaylight.yangtools.yang.common.RpcResultBuilder;
@@ -47,61 +36,21 @@ public class IpamProvider implements IpamService {
     private static final Logger LOG = LoggerFactory.getLogger(IpamProvider.class);
 
     private final DataBroker dataBroker;
-    private IpamData ipamData;
-    private static String global_Block = "10.0.0.0/8";
+    private IpamConfig ipamConfig;
+    private String global_Block = "10.0.0.0/8";
 
-    public IpamProvider(final DataBroker dataBroker) {
+    public IpamProvider(final IpamConfig ipamConfig, final DataBroker dataBroker) {
         this.dataBroker = dataBroker;
-        ipamData = new IpamData(this.dataBroker);
+        this.ipamConfig = ipamConfig;
+        global_Block = ipamConfig.getPodCidr();
     }
 
     public void init() {
         LOG.info("IpamProvider initialized");
-        InstanceIdentifier<IpSchemes> id = InstanceIdentifier.builder(IpamConfig.class)
-                .child(IpSchemes.class, new IpSchemesKey(SchemeType.DEFAULT)).build();
-        ReadOnlyTransaction tx = dataBroker.newReadOnlyTransaction();
-        CheckedFuture<com.google.common.base.Optional<IpSchemes>, ReadFailedException> cidrFuture = tx
-                .read(LogicalDatastoreType.CONFIGURATION, id);
-        try {
-            com.google.common.base.Optional<IpSchemes> schemesOptional = cidrFuture.get();
-            if(schemesOptional.isPresent()) {
-                IpSchemes global = schemesOptional.get();
-                global_Block = global.getNetwork();
-            }
-        } catch (InterruptedException e) {
-            LOG.warn("read ",e);
-        } catch (ExecutionException e) {
-            LOG.warn("",e);
-        } finally {
-            tx.close();
-        }
     }
 
     public void close() {
         LOG.info("IpamProvider closed");
-    }
-
-    @Override
-    public Future<RpcResult<ConfigIpPoolOutput>> configIpPool(ConfigIpPoolInput input) {
-        ConfigIpPoolOutputBuilder poolOutputBuilder = new ConfigIpPoolOutputBuilder();
-        switch (input.getSchemeType()) {
-            case DEFAULT:
-                String ipBlock = input.getNetwork();
-                if (checkIpBlocks(ipBlock)) {
-                    // Write the ip tool into datastore
-                    ipamData.addScheme(SchemeType.DEFAULT, ipBlock);
-                    global_Block = ipBlock;
-                    poolOutputBuilder.setResult("Success");
-                } else {
-                    poolOutputBuilder.setResult("Please input ip pool in the correct format like '10.0.0.0/8' ");
-                }
-                break;
-            case OTHER:
-                break;
-            default:
-                break;
-        }
-        return RpcResultBuilder.success(poolOutputBuilder.build()).buildFuture();
     }
 
 
@@ -136,14 +85,6 @@ public class IpamProvider implements IpamService {
             return RpcResultBuilder.<RequestNodeIpBlockOutput>failed().buildFuture();
         }
         return RpcResultBuilder.success(blockOutputBuilder.build()).buildFuture();
-    }
-
-
-    @Override
-    public Future<RpcResult<GetCurrentSettingsOutput>> getCurrentSettings() {
-        GetCurrentSettingsOutputBuilder builder = new GetCurrentSettingsOutputBuilder();
-        builder.setIpSchemes(ipamData.getSchemes());
-        return RpcResultBuilder.success(builder.build()).buildFuture();
     }
 
   /**

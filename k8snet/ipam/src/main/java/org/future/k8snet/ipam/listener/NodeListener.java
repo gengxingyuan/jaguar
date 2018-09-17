@@ -27,10 +27,7 @@ import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFailedException;
 import org.opendaylight.mdsal.common.api.OptimisticLockFailedException;
-import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.IpamAttr.SchemeType;
 import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.IpamConfig;
-import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.ip.schemes.IpSchemes;
-import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.ip.schemes.IpSchemesKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.coe.northbound.k8s.node.rev170829.K8sNodesInfo;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.coe.northbound.k8s.node.rev170829.k8s.nodes.info.K8sNodes;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.coe.northbound.k8s.node.rev170829.k8s.nodes.info.K8sNodesBuilder;
@@ -98,8 +95,7 @@ public class NodeListener implements DataTreeChangeListener<K8sNodes> {
         InstanceIdentifier<K8sNodes> nodeId = InstanceIdentifier.builder(K8sNodesInfo.class)
                 .child(K8sNodes.class, nodeNew.getKey()).build();
         WriteTransaction writeTransaction = dataBroker.newWriteOnlyTransaction();
-        K8sNodesBuilder builder = new K8sNodesBuilder();
-        builder.setUid(nodeNew.getUid());
+        K8sNodesBuilder builder = new K8sNodesBuilder(nodeNew);
         String ipBlock = defaultIpManager.distributeIp(Integer.valueOf(nodeNew.getMaxPodNum()));
         builder.setPodCidr(ipBlock);
         writeTransaction.merge(LogicalDatastoreType.CONFIGURATION, nodeId, builder.build());
@@ -130,16 +126,15 @@ public class NodeListener implements DataTreeChangeListener<K8sNodes> {
     }
 
     private void initDefaultIpManager(DataBroker dataBroker) {
-        InstanceIdentifier<IpSchemes> path = InstanceIdentifier.create(IpamConfig.class)
-                .child(IpSchemes.class, new IpSchemesKey(SchemeType.DEFAULT));
+        InstanceIdentifier<IpamConfig> ipamConfig_path = InstanceIdentifier.create(IpamConfig.class);
         ReadOnlyTransaction readOnlyTransaction = dataBroker.newReadOnlyTransaction();
         try {
-            Optional<IpSchemes> optional = readOnlyTransaction.read(LogicalDatastoreType.CONFIGURATION, path).get();
+            Optional<IpamConfig> optional = readOnlyTransaction.read(LogicalDatastoreType.CONFIGURATION, ipamConfig_path).get();
             // If the user didn't set ip pool use default
             if (!optional.isPresent()) {
                 this.defaultIpManager = new DefaultIpManager(DEFAULT_IP_POOL);
             } else {
-                this.defaultIpManager = new DefaultIpManager(optional.get().getNetwork());
+                this.defaultIpManager = new DefaultIpManager(optional.get().getPodCidr());
             }
         } catch (InterruptedException | ExecutionException e) {
             LOG.warn("read datastore fail:", e);
