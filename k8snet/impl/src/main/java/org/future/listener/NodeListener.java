@@ -161,13 +161,13 @@ public class NodeListener implements DataTreeChangeListener<K8sNodes> {
     private void addTermininationPointForCurNode(ConnectionInfo curConnectionInfo) {
         Node curNode = southboundUtils.createNode(curConnectionInfo);
         String curNodeIp = curConnectionInfo.getRemoteIp().getIpv4Address().getValue();
-        String tunInterface1 = curNodeIp.replaceAll(".","-");
+        String tunInterface1 = "vxlan-" + curNodeIp.replace(".","-");
         Map<String,String> options1 = new HashMap<>();
         options1.put("remote_ip",curNodeIp);
         for (ConnectionInfo otherConn:nodeConntionMap.values()) {
             Node otherNode = southboundUtils.createNode(otherConn);
             String remoteIp = otherConn.getRemoteIp().getIpv4Address().getValue();
-            String tunInterface = remoteIp.replaceAll(".","-");
+            String tunInterface = "vxlan-" + remoteIp.replace(".","-");
             Map<String,String> options = new HashMap<>();
             options.put("remote_ip",remoteIp);
             dbProcessor.enqueueOperation(manager ->  {
@@ -212,7 +212,7 @@ public class NodeListener implements DataTreeChangeListener<K8sNodes> {
     private void delTermininationPointForCurNode(ConnectionInfo curConnectionInfo) {
         Node delNode = southboundUtils.createNode(curConnectionInfo);
         String remoteIp = curConnectionInfo.getRemoteIp().getIpv4Address().getValue();
-        String tunInterface = remoteIp.replaceAll(".","-");
+        String tunInterface = "vxlan-" + remoteIp.replace(".","-");
         for (ConnectionInfo otherConn:nodeConntionMap.values()) {
             Node otherNode = southboundUtils.createNode(otherConn);
 
