@@ -7,8 +7,10 @@
  */
 package org.future.k8snet.ipam;
 
-import com.google.common.base.Optional;
+//import com.google.common.base.Optional;
 import com.google.common.util.concurrent.CheckedFuture;
+
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -23,12 +25,13 @@ import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.ConfigIpPoolOutput
 import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.GetCurrentSettingsOutput;
 import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.GetCurrentSettingsOutputBuilder;
 import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.IpamAttr.SchemeType;
+import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.IpamConfig;
 import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.IpamService;
-import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.RequestAddressInput;
-import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.RequestAddressOutput;
 import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.RequestNodeIpBlockInput;
 import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.RequestNodeIpBlockOutput;
 import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.RequestNodeIpBlockOutputBuilder;
+import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.ip.schemes.IpSchemes;
+import org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.ip.schemes.IpSchemesKey;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.Uuid;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.coe.northbound.k8s.node.rev170829.K8sNodesInfo;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.coe.northbound.k8s.node.rev170829.k8s.nodes.info.K8sNodes;
@@ -45,6 +48,7 @@ public class IpamProvider implements IpamService {
 
     private final DataBroker dataBroker;
     private IpamData ipamData;
+    private static String global_Block = "10.0.0.0/8";
 
     public IpamProvider(final DataBroker dataBroker) {
         this.dataBroker = dataBroker;
@@ -53,6 +57,24 @@ public class IpamProvider implements IpamService {
 
     public void init() {
         LOG.info("IpamProvider initialized");
+        InstanceIdentifier<IpSchemes> id = InstanceIdentifier.builder(IpamConfig.class)
+                .child(IpSchemes.class, new IpSchemesKey(SchemeType.DEFAULT)).build();
+        ReadOnlyTransaction tx = dataBroker.newReadOnlyTransaction();
+        CheckedFuture<com.google.common.base.Optional<IpSchemes>, ReadFailedException> cidrFuture = tx
+                .read(LogicalDatastoreType.CONFIGURATION, id);
+        try {
+            com.google.common.base.Optional<IpSchemes> schemesOptional = cidrFuture.get();
+            if(schemesOptional.isPresent()) {
+                IpSchemes global = schemesOptional.get();
+                global_Block = global.getNetwork();
+            }
+        } catch (InterruptedException e) {
+            LOG.warn("read ",e);
+        } catch (ExecutionException e) {
+            LOG.warn("",e);
+        } finally {
+            tx.close();
+        }
     }
 
     public void close() {
@@ -68,6 +90,7 @@ public class IpamProvider implements IpamService {
                 if (checkIpBlocks(ipBlock)) {
                     // Write the ip tool into datastore
                     ipamData.addScheme(SchemeType.DEFAULT, ipBlock);
+                    global_Block = ipBlock;
                     poolOutputBuilder.setResult("Success");
                 } else {
                     poolOutputBuilder.setResult("Please input ip pool in the correct format like '10.0.0.0/8' ");
@@ -81,37 +104,36 @@ public class IpamProvider implements IpamService {
         return RpcResultBuilder.success(poolOutputBuilder.build()).buildFuture();
     }
 
-    @Override
-    public Future<RpcResult<RequestAddressOutput>> requestAddress(RequestAddressInput input) {
-      // TODO Auto-generated method stub
-        return null;
-    }
 
     @Override
     public Future<RpcResult<RequestNodeIpBlockOutput>> requestNodeIpBlock(RequestNodeIpBlockInput input) {
-        String uid = input.getNodeUid();
+        String name = input.getNodeName();
         RequestNodeIpBlockOutputBuilder blockOutputBuilder = new RequestNodeIpBlockOutputBuilder();
-        InstanceIdentifier<K8sNodes> path = InstanceIdentifier.builder(K8sNodesInfo.class)
-                .child(K8sNodes.class, new K8sNodesKey(new Uuid(uid))).build();
-        ReadOnlyTransaction read = dataBroker.newReadOnlyTransaction();
-        CheckedFuture<Optional<K8sNodes>, ReadFailedException> future = read
+        InstanceIdentifier<K8sNodesInfo> path = InstanceIdentifier.builder(K8sNodesInfo.class).build();
+        ReadOnlyTransaction tx = dataBroker.newReadOnlyTransaction();
+        CheckedFuture<com.google.common.base.Optional<K8sNodesInfo>, ReadFailedException> future = tx
                 .read(LogicalDatastoreType.CONFIGURATION, path);
         String ipBlock = null;
         try {
-            Optional<K8sNodes> data = future.get();
+            com.google.common.base.Optional<K8sNodesInfo> data = future.get();
             if (data.isPresent()) {
-                K8sNodes k8sNode = data.get();
-                ipBlock = k8sNode.getPodCidr();
+                K8sNodesInfo nodesInfo = data.get();
+                Optional<K8sNodes> optionalNodes = nodesInfo.getK8sNodes().stream()
+                        .filter(node->node.getHostName().equals(name)).findFirst();
+                if(optionalNodes.isPresent()) {
+                    ipBlock = optionalNodes.get().getPodCidr();
+                }
             } else {
-                return RpcResultBuilder.success(blockOutputBuilder.setIpBlock("No such node").build()).buildFuture();
+                return RpcResultBuilder.<RequestNodeIpBlockOutput>failed().buildFuture();
             }
         } catch (InterruptedException | ExecutionException e) {
             LOG.error(e.toString());
         }
         if (ipBlock != null) {
-            blockOutputBuilder.setIpBlock(ipBlock);
+            blockOutputBuilder.setGlobalCidr(global_Block);
+            blockOutputBuilder.setNodeCidr(ipBlock);
         } else {
-            blockOutputBuilder.setIpBlock("Not distributed yet");
+            return RpcResultBuilder.<RequestNodeIpBlockOutput>failed().buildFuture();
         }
         return RpcResultBuilder.success(blockOutputBuilder.build()).buildFuture();
     }
