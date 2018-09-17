@@ -82,26 +82,26 @@ def ensure_cidr_conf():
         if not os.path.exists('/etc/jaguar/ip.conf'):
             f = open('/etc/jaguar/ip.conf','w')
             f.close()
-        else:
-            cf = ConfigParser.ConfigParser()
-            cf.read("/etc/jaguar/ip.conf")
-            if not cf.has_section('global'):
-                cf.add_section('global')
-                cf.add_section('local')
-                cf.set("global", "controller_ip", '192.168.139.10')
-                cf.set("global", "controller_port", 8181)
-                cf.write(open("/etc/jaguar/ip.conf", "w"))
-                cidrs = get_cidr('192.168.139.10', 8181, socket.gethostname())
-            else:
-                if not cf.has_option('local','cidr'):
-                    controller_ip = cf.get("global", "controller_ip")
-                    controller_port = cf.getint("global", "controller_port")
-                    cidrs = get_cidr(controller_ip, controller_port, socket.gethostname())
 
-            if cidrs:
-                cf.set("global", "cidr", cidrs[0])
-                cf.set("local", "cidr", cidrs[1])
-                cf.write(open("/etc/jaguar/ip.conf", "w"))
+        cf = ConfigParser.ConfigParser()
+        cf.read("/etc/jaguar/ip.conf")
+        if not cf.has_section('global'):
+            cf.add_section('global')
+            cf.add_section('local')
+            cf.set("global", "controller_ip", '192.168.139.10')
+            cf.set("global", "controller_port", 8181)
+            cf.write(open("/etc/jaguar/ip.conf", "w"))
+            cidrs = get_cidr('192.168.139.10', 8181, socket.gethostname())
+        else:
+            if not cf.has_option('local','cidr'):
+                controller_ip = cf.get("global", "controller_ip")
+                controller_port = cf.getint("global", "controller_port")
+                cidrs = get_cidr(controller_ip, controller_port, socket.gethostname())
+
+        if cidrs:
+            cf.set("global", "cidr", cidrs[0])
+            cf.set("local", "cidr", cidrs[1])
+            cf.write(open("/etc/jaguar/ip.conf", "w"))
 
     except Exception as e:
         raise JAGUARCNIException(100, "failure in creation of jaguar ip conf directory")
