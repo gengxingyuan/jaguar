@@ -8,6 +8,10 @@ import json
 import requests
 import subprocess
 import pyroute2
+import ConfigParser
+import socket
+import random
+from netaddr import *
 
 CNI_VERSION = "0.3.1"
 
@@ -55,6 +59,113 @@ def post(url, userId, password, data):
         print(resp.text)
 
     return resp
+
+def get_cidr(controller_ip,controller_port,name):
+    url = 'http://' + controller_ip +':' + controller_port +'/restconf/operations/ipam:request-node-ip-block'
+    data = '{"request-node-ip-block": {"input": {"node-name": "' + name + '"}}}'
+    resp = post(url,'admin','admin',data)
+
+    if resp.text:
+        data = json.loads(resp.text)
+        global_cidr = data['output']['global-cidr']
+        local_cidr = data['output']['local-cidr']
+        return [global_cidr,local_cidr]
+    else:
+        return None
+
+def ensure_cidr_conf(controller_ip,controller_port):
+    try:
+        if not os.path.exists("/etc/jaguar"):
+            os.makedirs("/etc/jaguar")
+        if not os.path.exists('/etc/jaguar/ip.conf'):
+            f = open('/etc/jaguar/ip.conf','w')
+            f.close()
+        else:
+            cf = ConfigParser.ConfigParser()
+            cf.read("/etc/jaguar/ip.conf")
+            if not cf.has_section('global'):
+                cf.add_section('global')
+                cf.add_section('local')
+                cidrs = get_cidr(controller_ip, controller_port, socket.gethostname())
+                if cidrs:
+                    cf.set("global", "cidr", cidrs[0])
+                    cf.set("local", "cidr", cidrs[1])
+                    cf.write(open("/etc/jaguar/ip.conf", "w"))
+    except Exception as e:
+        raise JAGUARCNIException(100, "failure in creation of jaguar ip conf directory")
+
+
+def allocate_ipaddr():
+    ensure_cidr_conf('192.168.139.10', 8181)
+    allocated_ip = '127.0.0.1'
+    gateway_ip = ''
+    addr_info = AddressInfo()
+
+    cf = ConfigParser.ConfigParser()
+    cf.read("/etc/jaguar/ip.conf")
+
+    if not cf.has_section('global')
+        addr_info.ip = ''
+        addr_info.gateway_ip = ''
+        addr_info.mask = 0
+        addr_info.global_cidr = ''
+        return addr_info
+    global_cidr = cf.get("global", "cidr")
+    local_cidr = cf.get("local", "cidr")
+
+    local_net = IPNetwork(local_cidr)
+
+    ip_list = list(local_net)
+    ipstr_all = []
+    if str(ip_list[0]).endswith('.0'):
+        del(ip_list[0])
+    for item in ip_list:
+        ipstr_all.append(str(item))
+
+    if not cf.has_option('local','ips'):
+        gateway_ip = str(ip_list[0])
+        allocated_ip = str(ip_list[1])
+        ips_str = str(ip_list[0]) + ',' + str(ip_list[1])
+        print(ips_str)
+    else:
+        ips_str = cf.get('local','ips')
+        ipstr_assigned = ips_str.split(',')
+
+        gateway_ip = ipstr_assigned[0]
+        ipstr_to_be_assigned = list(set(ipstr_all)^set(ipstr_assigned)) # list(set(a).difference(set(b)))
+        ipstr_to_be_assigned.sort()
+        allocated_ip = ipstr_to_be_assigned[0]
+        ips_str.append(',' + allocated_ip)
+
+    cf.set("local", "ips", ips_str)
+
+    cf.write(open("/etc/jaguar/ip.conf", "w"))
+
+    addr_info.ip = allocated_ip
+    addr_info.gateway_ip = gateway_ip
+    addr_info.mask = int(local_cidr.split('/')[1])
+    addr_info.global_cidr = global_cidr
+    return addr_info
+
+
+def release_ip(ip):
+    ensure_cidr_conf('192.168.139.10', 8181)
+
+    cf = ConfigParser.ConfigParser()
+    cf.read("/etc/jaguar/ip.conf")
+
+    if cf.has_option('local','ips'):
+        ips_str = cf.get("local", "ips")
+        ips_str = ips_str.replace(','+ip,'')
+        cf.set("local", "ips",ips_str)
+        cf.write(open("/etc/jaguar/ip.conf", "w"))
+
+class AddressInfo:
+    def __init__(self):
+        self.ip = ''
+        self.gateway_ip = ''
+        self.mask = 0
+        self.global_cidr = ''
 
 class JAGUARCNIException(Exception):
 
@@ -128,17 +239,22 @@ def setup_interface(container_id, cni_netns, cni_ifname,
         raise JAGUARCNIException(100, "container interface setup failure" + str(e))
 
 
+def randomMAC():
+    mac = [ 0x52, 0x54, 0x00,
+            random.randint(0x00, 0x7f),
+            random.randint(0x00, 0xff),
+            random.randint(0x00, 0xff) ]
+    return ':'.join(map(lambda x: "%02x" % x, mac))
+
 def cni_add(cni_ifname, cni_netns, namespace, pod_name, container_id):
 
-    ip_address = u'172.17.10.2'.encode()
-    mac_address = u'00:00:00:00:00:01'.encode()
-    gateway_ip = u'172.17.10.1'.encode()
+    addr_info = allocate_ipaddr()
 
-    mask = 24
+    mac_address = randomMAC()
 
     veth_outside = setup_interface(container_id, cni_netns, cni_ifname,
-                                   mac_address, ip_address, mask,
-                                   gateway_ip)
+                                   mac_address, addr_info.ip, addr_info.mask,
+                                   addr_info.gateway_ip)
 
     iface_id = "%s_%s" % (namespace, pod_name)
 
@@ -161,6 +277,8 @@ def cni_del(container_id):
     except Exception:
         message = "failed to delete OVS port %s" % container_id[:15]
         print(message)
+
+    #release_ip(ip)
 
     command = "rm -f /var/run/netns/%s" % container_id
     call_popen(shlex.split(command))

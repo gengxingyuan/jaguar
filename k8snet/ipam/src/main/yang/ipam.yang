@@ -36,7 +36,7 @@ module ipam {
         }
     }
 
-    grouping ip-schemes{
+    grouping ip-schemes {
     	list ip-schemes{
     		description "List of ip manager scheme";
     		key "scheme-type";
@@ -48,7 +48,7 @@ module ipam {
     	uses ip-schemes;
     }
     
-    rpc config-ip-pool{
+    rpc config-ip-pool {
     	input{
     		uses ipam-attr;
     	}
@@ -61,12 +61,15 @@ module ipam {
     rpc request-node-ip-block{
     	description "Get the distributed ip block according to the node's uuid";
     	input{
-    		leaf node-uid{
+    		leaf node-name {
     			type string;
     		}
     	}
     	output{
-    		leaf ip-block{
+    		leaf global-cidr {
+    			type string;
+    		}
+    		leaf node-cidr {
     			type string;
     		}
     	}
@@ -77,22 +80,5 @@ module ipam {
     		uses ip-schemes;
     	}
     }
-    rpc request-address {
-        input {
-            leaf pod-name {
-                type string;
-            }
 
-        }
-
-        output {
-            leaf ip {
-                type inet:ip-address;
-            }
-            leaf mac {
-                type string;
-            }
-//            uses ipam-attr;
-        }
-    }
 }
