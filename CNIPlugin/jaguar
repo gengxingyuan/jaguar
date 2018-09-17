@@ -116,7 +116,7 @@ def allocate_ipaddr():
     cf = ConfigParser.ConfigParser()
     cf.read("/etc/jaguar/ip.conf")
 
-    if not cf.has_section('global')
+    if not cf.has_section('global'):
         addr_info.ip = ''
         addr_info.gateway_ip = ''
         addr_info.mask = 0
