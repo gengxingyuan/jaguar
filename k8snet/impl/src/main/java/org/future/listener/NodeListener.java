@@ -167,7 +167,7 @@ public class NodeListener implements DataTreeChangeListener<K8sNodes> {
         for (ConnectionInfo otherConn:nodeConntionMap.values()) {
             Node otherNode = southboundUtils.createNode(otherConn);
             String remoteIp = otherConn.getRemoteIp().getIpv4Address().getValue();
-            String tunInterface = remoteIp.replaceAll(".","-");
+            String tunInterface = "vxlan-" + remoteIp.replace(".","-");
             Map<String,String> options = new HashMap<>();
             options.put("remote_ip",remoteIp);
             dbProcessor.enqueueOperation(manager ->  {
