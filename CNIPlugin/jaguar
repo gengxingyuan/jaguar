@@ -73,30 +73,42 @@ def get_cidr(controller_ip,controller_port,name):
     else:
         return None
 
-def ensure_cidr_conf(controller_ip,controller_port):
+def ensure_cidr_conf():
+    cidrs = None
     try:
         if not os.path.exists("/etc/jaguar"):
             os.makedirs("/etc/jaguar")
+
         if not os.path.exists('/etc/jaguar/ip.conf'):
             f = open('/etc/jaguar/ip.conf','w')
             f.close()
+
+        cf = ConfigParser.ConfigParser()
+        cf.read("/etc/jaguar/ip.conf")
+        if not cf.has_section('global'):
+            cf.add_section('global')
+            cf.add_section('local')
+            cf.set("global", "controller_ip", '192.168.139.10')
+            cf.set("global", "controller_port", 8181)
+            cf.write(open("/etc/jaguar/ip.conf", "w"))
+            cidrs = get_cidr('192.168.139.10', 8181, socket.gethostname())
         else:
-            cf = ConfigParser.ConfigParser()
-            cf.read("/etc/jaguar/ip.conf")
-            if not cf.has_section('global'):
-                cf.add_section('global')
-                cf.add_section('local')
+            if not cf.has_option('local','cidr'):
+                controller_ip = cf.get("global", "controller_ip")
+                controller_port = cf.getint("global", "controller_port")
                 cidrs = get_cidr(controller_ip, controller_port, socket.gethostname())
-                if cidrs:
-                    cf.set("global", "cidr", cidrs[0])
-                    cf.set("local", "cidr", cidrs[1])
-                    cf.write(open("/etc/jaguar/ip.conf", "w"))
+
+        if cidrs:
+            cf.set("global", "cidr", cidrs[0])
+            cf.set("local", "cidr", cidrs[1])
+            cf.write(open("/etc/jaguar/ip.conf", "w"))
+
     except Exception as e:
         raise JAGUARCNIException(100, "failure in creation of jaguar ip conf directory")
 
 
 def allocate_ipaddr():
-    ensure_cidr_conf('192.168.139.10', 8181)
+    ensure_cidr_conf()
     allocated_ip = '127.0.0.1'
     gateway_ip = ''
     addr_info = AddressInfo()
@@ -149,7 +161,7 @@ def allocate_ipaddr():
 
 
 def release_ip(ip):
-    ensure_cidr_conf('192.168.139.10', 8181)
+    ensure_cidr_conf()
 
     cf = ConfigParser.ConfigParser()
     cf.read("/etc/jaguar/ip.conf")
