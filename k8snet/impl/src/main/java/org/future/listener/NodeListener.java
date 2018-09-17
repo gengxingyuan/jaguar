@@ -74,6 +74,7 @@ public class NodeListener implements DataTreeChangeListener<K8sNodes> {
         southboundUtils = new SouthboundUtils(mdsalUtils);
         nodeConntionMap = new ConcurrentHashMap();
         dbProcessor = new OperationProcessor(dataBroker);
+        dbProcessor.start();
     }
 
     protected InstanceIdentifier<K8sNodes> getWildCardPath() {
@@ -173,13 +174,13 @@ public class NodeListener implements DataTreeChangeListener<K8sNodes> {
                 InstanceIdentifier<TerminationPoint> tpIid =
                     southboundUtils.createTerminationPointInstanceIdentifier(curNode, tunInterface);
                 TerminationPoint tp = createTerminationPoint(tunInterface,options,tpIid);
-                manager.writeToTransaction(LogicalDatastoreType.CONFIGURATION,tpIid,tp,false);
+                manager.mergeToTransaction(LogicalDatastoreType.CONFIGURATION,tpIid,tp,false);
             });
             dbProcessor.enqueueOperation(manager ->  {
                 InstanceIdentifier<TerminationPoint> tpIid =
                     southboundUtils.createTerminationPointInstanceIdentifier(otherNode, tunInterface1);
                 TerminationPoint tp = createTerminationPoint(tunInterface1,options1,tpIid);
-                manager.writeToTransaction(LogicalDatastoreType.CONFIGURATION,tpIid,tp,false);
+                manager.mergeToTransaction(LogicalDatastoreType.CONFIGURATION,tpIid,tp,false);
             });
         }
     }
