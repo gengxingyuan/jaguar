@@ -15,51 +15,16 @@ module ipam {
         description
             "Initial revision.";
     }
-    
-    
 
-    grouping ipam-attr {
-        leaf scheme-type {
-            type enumeration{
-                enum "DEFAULT" {
-                    value 0;
-                    description "Distribute ip address according to the nodes demand";
-                }
-                enum "OTHER" {
-                    value 2;
-                    description "Other distribution method";
-                }
-            }
-        }
-        leaf network {
+    container ipam-config {
+    	description "Ip manager information";
+        leaf pod_cidr {
             type string;
         }
     }
 
-    grouping ip-schemes {
-    	list ip-schemes{
-    		description "List of ip manager scheme";
-    		key "scheme-type";
-    		uses ipam-attr;
-    	}
-    }
-    container ipam-config {
-    	description "Ip manager scheme information";
-    	uses ip-schemes;
-    }
-    
-    rpc config-ip-pool {
-    	input{
-    		uses ipam-attr;
-    	}
-    	output{
-    		leaf result{
-    			type string;
-    		}
-    	}
-    }
     rpc request-node-ip-block{
-    	description "Get the distributed ip block according to the node's uuid";
+    	description "Get the distributed ip block according to the node's name";
     	input{
     		leaf node-name {
     			type string;
@@ -72,12 +37,6 @@ module ipam {
     		leaf node-cidr {
     			type string;
     		}
-    	}
-    }
-    rpc get-current-settings{
-    	description "Get current ip distribution settings";
-    	output {
-    		uses ip-schemes;
     	}
     }
 
