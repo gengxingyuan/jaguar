@@ -65,13 +65,27 @@ def get_cidr(controller_ip,controller_port,name):
     data = json.dumps({"input": {"node-name": name}})
     resp = post(url,'admin','admin',data)
 
-    if resp.text:
+    if resp.status_code == 200 and resp.text:
         data = json.loads(resp.text)
         global_cidr = data['output']['global-cidr']
         local_cidr = data['output']['node-cidr']
         return [global_cidr,local_cidr]
     else:
         return None
+
+def add_host_route(global_cidr, local_cidr):
+    local_net = IPNetwork(local_cidr)
+
+    ip_list = list(local_net)
+    ipstr_all = []
+    if str(ip_list[0]).endswith('.0'):
+        del(ip_list[0])
+    gateway_ip = str(ip_list[0])
+    mask_str = local_cidr.split('/')[1]
+
+    call_popen('ifconfig br0 up')
+    call_popen('ifconfig br0 ' + gateway_ip + '/' + mask_str)
+    call_popen('ip route add ' + global_cidr + ' via ' + gateway_ip + ' dev br0')
 
 def ensure_cidr_conf():
     cidrs = None
@@ -89,7 +103,7 @@ def ensure_cidr_conf():
             cf.add_section('global')
             cf.add_section('local')
             cf.set("global", "controller_ip", '192.168.139.10')
-            cf.set("global", "controller_port", 8181)
+            cf.set("global", "controller_port", '8181')
             cf.write(open("/etc/jaguar/ip.conf", "w"))
             cidrs = get_cidr('192.168.139.10', 8181, socket.gethostname())
         else:
@@ -99,12 +113,15 @@ def ensure_cidr_conf():
                 cidrs = get_cidr(controller_ip, controller_port, socket.gethostname())
 
         if cidrs:
-            cf.set("global", "cidr", cidrs[0])
-            cf.set("local", "cidr", cidrs[1])
+            global_cidr = cidrs[0]
+            local_cidr = cidrs[1]
+            cf.set("global", "cidr", global_cidr)
+            cf.set("local", "cidr", local_cidr)
             cf.write(open("/etc/jaguar/ip.conf", "w"))
+            add_host_route(global_cidr, local_cidr)
 
     except Exception as e:
-        raise JAGUARCNIException(100, "failure in creation of jaguar ip conf directory")
+        raise JAGUARCNIException(100, "failure ensure_cidr_conf" + str(e))
 
 
 def allocate_ipaddr():
@@ -117,7 +134,7 @@ def allocate_ipaddr():
     cf.read("/etc/jaguar/ip.conf")
 
     if not cf.has_section('global'):
-        addr_info.ip = ''
+        addr_info.ip = allocated_ip
         addr_info.gateway_ip = ''
         addr_info.mask = 0
         addr_info.global_cidr = ''
@@ -147,7 +164,7 @@ def allocate_ipaddr():
         ipstr_to_be_assigned = list(set(ipstr_all)^set(ipstr_assigned)) # list(set(a).difference(set(b)))
         ipstr_to_be_assigned.sort()
         allocated_ip = ipstr_to_be_assigned[0]
-        ips_str.append(',' + allocated_ip)
+        ips_str = ips_str + ',' + allocated_ip
 
     cf.set("local", "ips", ips_str)
 
