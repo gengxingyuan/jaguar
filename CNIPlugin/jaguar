@@ -54,21 +54,21 @@ def post(url, userId, password, data):
     resp = session.post(url, data.encode('utf-8'), headers=headers, auth=(userId, password))
 
     # print(resp.raise_for_status())
-    print(resp.headers)
+    # print(resp.headers)
     if resp.status_code >= 500:
         print(resp.text)
 
     return resp
 
 def get_cidr(controller_ip,controller_port,name):
-    url = 'http://' + controller_ip +':' + controller_port +'/restconf/operations/ipam:request-node-ip-block'
-    data = '{"request-node-ip-block": {"input": {"node-name": "' + name + '"}}}'
+    url = 'http://' + controller_ip +':' + str(controller_port) +'/restconf/operations/ipam:request-node-ip-block'
+    data = json.dumps({"input": {"node-name": name}})
     resp = post(url,'admin','admin',data)
 
     if resp.text:
         data = json.loads(resp.text)
         global_cidr = data['output']['global-cidr']
-        local_cidr = data['output']['local-cidr']
+        local_cidr = data['output']['node-cidr']
         return [global_cidr,local_cidr]
     else:
         return None
