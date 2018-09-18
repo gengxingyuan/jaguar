@@ -10,6 +10,7 @@ import subprocess
 import pyroute2
 import ConfigParser
 import socket
+import struct
 import random
 from netaddr import *
 
@@ -69,9 +70,9 @@ def get_cidr(controller_ip,controller_port,name):
         data = json.loads(resp.text)
         global_cidr = data['output']['global-cidr']
         local_cidr = data['output']['node-cidr']
-        return [global_cidr,local_cidr]
+        return global_cidr,local_cidr
     else:
-        return None
+        return None,None
 
 def add_host_route(global_cidr, local_cidr):
     local_net = IPNetwork(local_cidr)
@@ -89,7 +90,8 @@ def add_host_route(global_cidr, local_cidr):
         raise JAGUARCNIException(100, "add_host_route " + str(e))
 
 def ensure_cidr_conf():
-    cidrs = None
+    global_cidr = None
+    local_cidr = None
     try:
         if not os.path.exists("/etc/jaguar"):
             os.makedirs("/etc/jaguar")
@@ -106,21 +108,18 @@ def ensure_cidr_conf():
             cf.set("global", "controller_ip", '192.168.139.10')
             cf.set("global", "controller_port", '8181')
             cf.write(open("/etc/jaguar/ip.conf", "w"))
-            cidrs = get_cidr('192.168.139.10', 8181, socket.gethostname())
+            global_cidr,local_cidr = get_cidr('192.168.139.10', 8181, socket.gethostname())
         else:
             if not cf.has_option('local','cidr'):
                 controller_ip = cf.get("global", "controller_ip")
                 controller_port = cf.getint("global", "controller_port")
-                cidrs = get_cidr(controller_ip, controller_port, socket.gethostname())
+                global_cidr,local_cidr = get_cidr(controller_ip, controller_port, socket.gethostname())
 
-        if cidrs:
-            global_cidr = cidrs[0]
-            local_cidr = cidrs[1]
+        if global_cidr and local_cidr:
             cf.set("global", "cidr", global_cidr)
             cf.set("local", "cidr", local_cidr)
             cf.write(open("/etc/jaguar/ip.conf", "w"))
             add_host_route(global_cidr, local_cidr)
-
     except Exception as e:
         raise JAGUARCNIException(100, "failure ensure_cidr_conf " + str(e))
 
@@ -128,54 +127,48 @@ def ensure_cidr_conf():
 def allocate_ipaddr():
     ensure_cidr_conf()
     allocated_ip = '127.0.0.1'
-    gateway_ip = ''
-    addr_info = AddressInfo()
+    gateway_ip = '0.0.0.0'
 
     cf = ConfigParser.ConfigParser()
     cf.read("/etc/jaguar/ip.conf")
 
-    if not cf.has_section('global'):
-        addr_info.ip = allocated_ip
-        addr_info.gateway_ip = ''
-        addr_info.mask = 0
-        addr_info.global_cidr = ''
-        return addr_info
+    if not cf.has_option('local','cidr'):
+        return allocated_ip,gateway_ip,'0.0.0.0/0','0.0.0.0/0'
     global_cidr = cf.get("global", "cidr")
     local_cidr = cf.get("local", "cidr")
 
     local_net = IPNetwork(local_cidr)
 
     ip_list = list(local_net)
-    ipstr_all = []
-    if str(ip_list[0]).endswith('.0'):
-        del(ip_list[0])
-    for item in ip_list:
-        ipstr_all.append(str(item))
+    ip_int_all = []
+    ip_n = filter(lambda ip:(not str(ip).endswith('.0') and not str(ip).endswith('.255')),ip_list)
+    for item in ip_n:
+        ip_int_all.append(socket.ntohl(struct.unpack("I",socket.inet_aton(str(item)))[0]))
+    ip_int_all.sort()
 
     if not cf.has_option('local','ips'):
-        gateway_ip = str(ip_list[0])
-        allocated_ip = str(ip_list[1])
-        ips_str = str(ip_list[0]) + ',' + str(ip_list[1])
-        print(ips_str)
+        gateway_ip = socket.inet_ntoa(struct.pack('I',socket.htonl(ip_int_all[0])))
+        allocated_ip = socket.inet_ntoa(struct.pack('I',socket.htonl(ip_int_all[1])))
+        ips_str = gateway_ip + ',' + allocated_ip
+        #print(ips_str)
     else:
         ips_str = cf.get('local','ips')
         ipstr_assigned = ips_str.split(',')
+        ip_int_assigned = []
+        for tmp_assigned_ip in ipstr_assigned:
+            ip_int_assigned.append(socket.ntohl(struct.unpack("I",socket.inet_aton(str(tmp_assigned_ip)))[0]))
 
-        gateway_ip = ipstr_assigned[0]
-        ipstr_to_be_assigned = list(set(ipstr_all)^set(ipstr_assigned)) # list(set(a).difference(set(b)))
-        ipstr_to_be_assigned.sort()
-        allocated_ip = ipstr_to_be_assigned[0]
+        gateway_ip = socket.inet_ntoa(struct.pack('I',socket.htonl(ip_int_all[0])))
+        ip_int_to_be_assigned = list(set(ip_int_all)^set(ip_int_assigned)) # list(set(a).difference(set(b)))
+        ip_int_to_be_assigned.sort()
+        allocated_ip = socket.inet_ntoa(struct.pack('I',socket.htonl(ip_int_to_be_assigned[0])))
         ips_str = ips_str + ',' + allocated_ip
 
     cf.set("local", "ips", ips_str)
 
     cf.write(open("/etc/jaguar/ip.conf", "w"))
 
-    addr_info.ip = allocated_ip
-    addr_info.gateway_ip = gateway_ip
-    addr_info.mask = int(local_cidr.split('/')[1])
-    addr_info.global_cidr = global_cidr
-    return addr_info
+    return allocated_ip,gateway_ip,local_cidr,global_cidr
 
 
 def release_ip(ip):
@@ -189,13 +182,6 @@ def release_ip(ip):
         ips_str = ips_str.replace(','+ip,'')
         cf.set("local", "ips",ips_str)
         cf.write(open("/etc/jaguar/ip.conf", "w"))
-
-class AddressInfo:
-    def __init__(self):
-        self.ip = ''
-        self.gateway_ip = ''
-        self.mask = 0
-        self.global_cidr = ''
 
 class JAGUARCNIException(Exception):
 
@@ -278,10 +264,10 @@ def randomMAC():
 
 def cni_add(cni_ifname, cni_netns, namespace, pod_name, container_id):
 
-    addr_info = allocate_ipaddr()
+    ip_address,gateway_ip,local_cidr,global_cidr = allocate_ipaddr()
+    #mask = int(local_cidr.split('/')[1])
     mac_address = randomMAC()
-    ip_address = '10.0.3.10'
-    gateway_ip = '10.0.3.1'
+
     veth_outside = setup_interface(container_id, cni_netns, cni_ifname,
                                    mac_address, ip_address, 25,
                                    gateway_ip)
