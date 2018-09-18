@@ -43,11 +43,13 @@ public class NodeListener implements DataTreeChangeListener<K8sNodes> {
     private static final Logger LOG = LoggerFactory.getLogger(NodeListener.class);
 
     DefaultIpManager defaultIpManager;
+    String global_cidr = "";
     ListenerRegistration<NodeListener> listenerReg;
-    public static final String DEFAULT_IP_POOL = "10.0.0.0/8";
     private final DataBroker dataBroker;
 
-    public NodeListener(DataBroker dataBroker) {
+    public NodeListener(String global_cidr, DataBroker dataBroker) {
+        this.global_cidr = global_cidr;
+        defaultIpManager = new DefaultIpManager(this.global_cidr);
         this.dataBroker = dataBroker;
     }
 
@@ -72,10 +74,7 @@ public class NodeListener implements DataTreeChangeListener<K8sNodes> {
                 case SUBTREE_MODIFIED:
                     break;
                 case WRITE:
-                    if (this.defaultIpManager == null) {
-                        initDefaultIpManager(dataBroker);
-                    }
-                    if (mod.getDataBefore() == null) {
+                    if (mod.getDataBefore() == null || mod.getDataAfter().getPodCidr() == null) {
                         addIpBlockToNode(mod.getDataAfter(), dataBroker);
                     }
                     break;
@@ -123,22 +122,6 @@ public class NodeListener implements DataTreeChangeListener<K8sNodes> {
                 }
             }
             }, MoreExecutors.directExecutor());
-    }
-
-    private void initDefaultIpManager(DataBroker dataBroker) {
-        InstanceIdentifier<IpamConfig> ipamConfig_path = InstanceIdentifier.create(IpamConfig.class);
-        ReadOnlyTransaction readOnlyTransaction = dataBroker.newReadOnlyTransaction();
-        try {
-            Optional<IpamConfig> optional = readOnlyTransaction.read(LogicalDatastoreType.CONFIGURATION, ipamConfig_path).get();
-            // If the user didn't set ip pool use default
-            if (!optional.isPresent()) {
-                this.defaultIpManager = new DefaultIpManager(DEFAULT_IP_POOL);
-            } else {
-                this.defaultIpManager = new DefaultIpManager(optional.get().getPodCidr());
-            }
-        } catch (InterruptedException | ExecutionException e) {
-            LOG.warn("read datastore fail:", e);
-        }
     }
 
 }

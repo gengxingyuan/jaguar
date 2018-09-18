@@ -77,7 +77,6 @@ def add_host_route(global_cidr, local_cidr):
     local_net = IPNetwork(local_cidr)
 
     ip_list = list(local_net)
-    ipstr_all = []
     if str(ip_list[0]).endswith('.0'):
         del(ip_list[0])
     gateway_ip = str(ip_list[0])

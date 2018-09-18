@@ -36,13 +36,11 @@ public class IpamProvider implements IpamService {
     private static final Logger LOG = LoggerFactory.getLogger(IpamProvider.class);
 
     private final DataBroker dataBroker;
-    private IpamConfig ipamConfig;
     private String global_Block = "10.0.0.0/8";
 
-    public IpamProvider(final IpamConfig ipamConfig, final DataBroker dataBroker) {
+    public IpamProvider(String global_cidr, final DataBroker dataBroker) {
         this.dataBroker = dataBroker;
-        this.ipamConfig = ipamConfig;
-        global_Block = ipamConfig.getPodCidr();
+        global_Block = global_cidr;
     }
 
     public void init() {
