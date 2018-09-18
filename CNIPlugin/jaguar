@@ -81,10 +81,12 @@ def add_host_route(global_cidr, local_cidr):
         del(ip_list[0])
     gateway_ip = str(ip_list[0])
     mask_str = local_cidr.split('/')[1]
-
-    call_popen('ifconfig br0 up')
-    call_popen('ifconfig br0 ' + gateway_ip + '/' + mask_str)
-    call_popen('ip route add ' + global_cidr + ' via ' + gateway_ip + ' dev br0')
+    try:
+        call_popen('ifconfig br0 up')
+        call_popen('ifconfig br0 ' + gateway_ip + '/' + mask_str)
+        call_popen('ip route add ' + global_cidr + ' via ' + gateway_ip + ' dev br0')
+    except Exception as e:
+        raise JAGUARCNIException(100, "add_host_route " + str(e))
 
 def ensure_cidr_conf():
     cidrs = None
@@ -120,7 +122,7 @@ def ensure_cidr_conf():
             add_host_route(global_cidr, local_cidr)
 
     except Exception as e:
-        raise JAGUARCNIException(100, "failure ensure_cidr_conf" + str(e))
+        raise JAGUARCNIException(100, "failure ensure_cidr_conf " + str(e))
 
 
 def allocate_ipaddr():
@@ -277,12 +279,12 @@ def randomMAC():
 def cni_add(cni_ifname, cni_netns, namespace, pod_name, container_id):
 
     addr_info = allocate_ipaddr()
-
     mac_address = randomMAC()
-
+    ip_address = '10.0.3.10'
+    gateway_ip = '10.0.3.1'
     veth_outside = setup_interface(container_id, cni_netns, cni_ifname,
-                                   mac_address, addr_info.ip, addr_info.mask,
-                                   addr_info.gateway_ip)
+                                   mac_address, ip_address, 25,
+                                   gateway_ip)
 
     iface_id = "%s_%s" % (namespace, pod_name)
 
