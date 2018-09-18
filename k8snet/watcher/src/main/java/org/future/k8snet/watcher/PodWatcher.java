@@ -71,7 +71,7 @@ public class PodWatcher {
         podsBuilder.setName(pod.getMetadata().getName());
         podsBuilder.setUid(new Uuid(pod.getMetadata().getUid()));
         podsBuilder.setNetworkNS(pod.getMetadata().getNamespace());
-        podsBuilder.setHostIpAddress(new IpAddress(new Ipv4Address(pod.getStatus().getHostIP())));
+        //podsBuilder.setHostIpAddress(new IpAddress(new Ipv4Address(pod.getStatus().getHostIP())));
         //podsBuilder.setPortMacAddress(pod.getStatus().);
         //podsBuilder.setInterface();
 

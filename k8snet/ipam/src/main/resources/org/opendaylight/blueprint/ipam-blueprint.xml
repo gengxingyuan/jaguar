@@ -22,12 +22,17 @@
 
     <bean id="ipamProvider" class="org.future.k8snet.ipam.IpamProvider"
         init-method="init" destroy-method="close">
-        <argument ref="ipamConfig" />
+        <argument>
+            <bean factory-ref="ipamConfig" factory-method="getPodCidr" />
+        </argument>
         <argument ref="dataBroker" />
     </bean>
 
     <bean id="nodeListener" class="org.future.k8snet.ipam.listener.NodeListener"
         init-method="init" destroy-method="close">
+        <argument>
+            <bean factory-ref="ipamConfig" factory-method="getPodCidr" />
+        </argument>
         <argument ref="dataBroker" />
     </bean>
     <odl:rpc-implementation ref="ipamProvider" />
