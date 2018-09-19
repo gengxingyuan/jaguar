@@ -16,6 +16,9 @@ from netaddr import *
 
 CNI_VERSION = "0.3.1"
 
+JAGUAR_IPAM_CONFIG_FILE = "/etc/jaguar/ip.conf"
+BRIDGE_NAME = "br0"
+
 def call_popen(cmd):
     child = subprocess.Popen(cmd, stdout=subprocess.PIPE)
     output = child.communicate()
@@ -76,16 +79,19 @@ def get_cidr(controller_ip,controller_port,name):
 
 def add_host_route(global_cidr, local_cidr):
     local_net = IPNetwork(local_cidr)
-
     ip_list = list(local_net)
-    if str(ip_list[0]).endswith('.0'):
-        del(ip_list[0])
-    gateway_ip = str(ip_list[0])
-    mask_str = local_cidr.split('/')[1]
+    ip_n = filter(lambda ip:(not str(ip).endswith('.0') and not str(ip).endswith('.255')),ip_list)
+    gateway_ip = str(ip_n[0])
+    mask = int(local_cidr.split('/')[1])
+
+    ipdb = pyroute2.IPDB(mode='explicit')
     try:
-        call_popen('ifconfig br0 up')
-        call_popen('ifconfig br0 ' + gateway_ip + '/' + mask_str)
-        call_popen('ip route add ' + global_cidr + ' via ' + gateway_ip + ' dev br0')
+        with ipdb.interfaces[BRIDGE_NAME] as bridge_iface:
+            bridge_iface.up()
+            bridge_iface.add_ip(gateway_ip,mask)
+
+        # Set global route
+        ipdb.routes.add(dst=global_cidr, oif=ipdb.interfaces[BRIDGE_NAME].index).commit()
     except Exception as e:
         raise JAGUARCNIException(100, "add_host_route " + str(e))
 
@@ -101,13 +107,13 @@ def ensure_cidr_conf():
             f.close()
 
         cf = ConfigParser.ConfigParser()
-        cf.read("/etc/jaguar/ip.conf")
+        cf.read(JAGUAR_IPAM_CONFIG_FILE)
         if not cf.has_section('global'):
             cf.add_section('global')
             cf.add_section('local')
             cf.set("global", "controller_ip", '192.168.139.10')
             cf.set("global", "controller_port", '8181')
-            cf.write(open("/etc/jaguar/ip.conf", "w"))
+            cf.write(open(JAGUAR_IPAM_CONFIG_FILE, "w"))
             global_cidr,local_cidr = get_cidr('192.168.139.10', 8181, socket.gethostname())
         else:
             if not cf.has_option('local','cidr'):
@@ -118,7 +124,7 @@ def ensure_cidr_conf():
         if global_cidr and local_cidr:
             cf.set("global", "cidr", global_cidr)
             cf.set("local", "cidr", local_cidr)
-            cf.write(open("/etc/jaguar/ip.conf", "w"))
+            cf.write(open(JAGUAR_IPAM_CONFIG_FILE, "w"))
             add_host_route(global_cidr, local_cidr)
     except Exception as e:
         raise JAGUARCNIException(100, "failure ensure_cidr_conf " + str(e))
@@ -130,7 +136,7 @@ def allocate_ipaddr():
     gateway_ip = '0.0.0.0'
 
     cf = ConfigParser.ConfigParser()
-    cf.read("/etc/jaguar/ip.conf")
+    cf.read(JAGUAR_IPAM_CONFIG_FILE)
 
     if not cf.has_option('local','cidr'):
         return allocated_ip,gateway_ip,'0.0.0.0/0','0.0.0.0/0'
@@ -166,7 +172,7 @@ def allocate_ipaddr():
 
     cf.set("local", "ips", ips_str)
 
-    cf.write(open("/etc/jaguar/ip.conf", "w"))
+    cf.write(open(JAGUAR_IPAM_CONFIG_FILE, "w"))
 
     return allocated_ip,gateway_ip,local_cidr,global_cidr
 
@@ -175,13 +181,13 @@ def release_ip(ip):
     ensure_cidr_conf()
 
     cf = ConfigParser.ConfigParser()
-    cf.read("/etc/jaguar/ip.conf")
+    cf.read(JAGUAR_IPAM_CONFIG_FILE)
 
     if cf.has_option('local','ips'):
         ips_str = cf.get("local", "ips")
         ips_str = ips_str.replace(','+ip,'')
         cf.set("local", "ips",ips_str)
-        cf.write(open("/etc/jaguar/ip.conf", "w"))
+        cf.write(open(JAGUAR_IPAM_CONFIG_FILE, "w"))
 
 class JAGUARCNIException(Exception):
 
@@ -245,7 +251,7 @@ def setup_interface(container_id, cni_netns, cni_ifname,
             veth_inside_iface.add_ip(ip_address,mask)
             veth_inside_iface.up()
 
-        # Set the gateway
+        # Set the gateway ,     oif = ns_ipdb.interfaces[veth_inside].index
         ns_ipdb.routes.add(dst='default', oif=ns_ipdb.interfaces[cni_ifname]['index']).commit()
 
         return veth_outside
@@ -275,7 +281,7 @@ def cni_add(cni_ifname, cni_netns, namespace, pod_name, container_id):
     iface_id = "%s_%s" % (namespace, pod_name)
 
     try:
-        ovs_vsctl('add-port', 'br0', veth_outside, '--', 'set',
+        ovs_vsctl('add-port', BRIDGE_NAME, veth_outside, '--', 'set',
                   'interface', veth_outside,
                   'external_ids:attached_mac=%s' % mac_address,
                   'external_ids:iface-id=%s' % iface_id,
@@ -287,14 +293,19 @@ def cni_add(cni_ifname, cni_netns, namespace, pod_name, container_id):
                         'gateway_ip': gateway_ip, 'mac_address': mac_address})
     print(output)
 
-def cni_del(container_id):
+def cni_del(container_id, cni_ifname):
     try:
         ovs_vsctl("del-port", container_id[:15])
     except Exception:
         message = "failed to delete OVS port %s" % container_id[:15]
         print(message)
-
-    #release_ip(ip)
+    ip_address = '127.0.0.1'
+    ns_ipdb = pyroute2.IPDB(nl=pyroute2.NetNS(container_id),
+                            mode='explicit')
+    with ns_ipdb.interfaces[cni_ifname] as inside_iface:
+        ip_address = inside_iface.ipaddr[1][0]
+    ns_ipdb.release()
+    release_ip(ip_address)
 
     command = "rm -f /var/run/netns/%s" % container_id
     call_popen(shlex.split(command))
@@ -316,7 +327,7 @@ def main():
     if cni_command == "ADD":
         cni_add(cni_ifname, cni_netns, namespace, pod_name, container_id)
     elif cni_command == "DEL":
-        cni_del(container_id)
+        cni_del(container_id, cni_ifname)
 
 if __name__ == '__main__':
     try:
