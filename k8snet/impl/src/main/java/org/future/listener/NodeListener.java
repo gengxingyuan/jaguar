@@ -67,13 +67,13 @@ public class NodeListener implements DataTreeChangeListener<K8sNodes> {
                     .child(Topology.class, new TopologyKey(OvsdbSouthboundUtils.OVSDB_TOPOLOGY_ID));
 
     public NodeListener(final DataBroker dataBroker) {
-        registerListener(LogicalDatastoreType.CONFIGURATION, dataBroker);
         this.dataBroker = dataBroker;
         mdsalUtils = new MdsalUtils(dataBroker);
         ovsdbSouthboundUtils = new OvsdbSouthboundUtils(mdsalUtils);
         nodeConntionMap = new ConcurrentHashMap();
         dbProcessor = new OperationProcessor(dataBroker);
         dbProcessor.start();
+        registerListener(LogicalDatastoreType.CONFIGURATION, dataBroker);
     }
 
     protected InstanceIdentifier<K8sNodes> getWildCardPath() {
@@ -99,7 +99,7 @@ public class NodeListener implements DataTreeChangeListener<K8sNodes> {
     public void onDataTreeChanged(@Nonnull Collection<DataTreeModification<K8sNodes>> changes) {
         for (DataTreeModification<K8sNodes> change : changes) {
             final DataObjectModification<K8sNodes> mod = change.getRootNode();
-
+            LOG.debug("k8sNode dataChanged,modificationType:" + mod.getModificationType());
             switch (mod.getModificationType()) {
                 case DELETE:
                     delete(mod.getDataBefore());
@@ -107,7 +107,10 @@ public class NodeListener implements DataTreeChangeListener<K8sNodes> {
                 case SUBTREE_MODIFIED:
                     break;
                 case WRITE:
-                    if (mod.getDataBefore() == null) {
+                    ConnectionInfo connectionInfo = OvsdbSouthboundUtils.getConnectionInfo(
+                            String.valueOf(mod.getDataAfter().getInternalIpAddress().getValue()),OVSDB_PORT);
+                    Node node = ovsdbSouthboundUtils.getOvsdbNode(connectionInfo);
+                    if (mod.getDataBefore() == null || node == null) {
                         add(mod.getDataAfter());
                     }
                     break;
@@ -119,7 +122,7 @@ public class NodeListener implements DataTreeChangeListener<K8sNodes> {
     }
 
     private synchronized void add(K8sNodes nodeNew) {
-        LOG.debug("k8sNode added - ovsdb node connecting!" + nodeNew);
+        LOG.info("k8sNode added - ovsdb node connecting!" + nodeNew);
         ConnectionInfo connectionInfo = OvsdbSouthboundUtils.getConnectionInfo(
                 String.valueOf(nodeNew.getInternalIpAddress().getValue()),OVSDB_PORT);
         Node node = ovsdbSouthboundUtils.createNode(connectionInfo);
