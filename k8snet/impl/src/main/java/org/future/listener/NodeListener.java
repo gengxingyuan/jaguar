@@ -19,7 +19,7 @@ import java.util.concurrent.Executors;
 import javax.annotation.Nonnull;
 
 import org.future.util.OperationProcessor;
-import org.future.util.OvsdbUtil;
+import org.future.util.OvsdbSouthboundUtils;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.binding.api.DataObjectModification;
 import org.opendaylight.controller.md.sal.binding.api.DataTreeChangeListener;
@@ -27,7 +27,6 @@ import org.opendaylight.controller.md.sal.binding.api.DataTreeIdentifier;
 import org.opendaylight.controller.md.sal.binding.api.DataTreeModification;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.ovsdb.utils.mdsal.utils.MdsalUtils;
-import org.opendaylight.ovsdb.utils.southbound.utils.SouthboundUtils;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.coe.northbound.k8s.node.rev170829.K8sNodesInfo;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.coe.northbound.k8s.node.rev170829.k8s.nodes.info.K8sNodes;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.ovsdb.rev150105.DatapathTypeSystem;
@@ -60,18 +59,18 @@ public class NodeListener implements DataTreeChangeListener<K8sNodes> {
     private ListenerRegistration<NodeListener> listenerRegistration;
     private final DataBroker dataBroker;
     private static MdsalUtils mdsalUtils = null;
-    private SouthboundUtils southboundUtils = null;
+    private OvsdbSouthboundUtils ovsdbSouthboundUtils = null;
     private Map<String,ConnectionInfo> nodeConntionMap;
 
     InstanceIdentifier<Topology> path =
             InstanceIdentifier.create(NetworkTopology.class)
-                    .child(Topology.class, new TopologyKey(SouthboundUtils.OVSDB_TOPOLOGY_ID));
+                    .child(Topology.class, new TopologyKey(OvsdbSouthboundUtils.OVSDB_TOPOLOGY_ID));
 
     public NodeListener(final DataBroker dataBroker) {
         registerListener(LogicalDatastoreType.CONFIGURATION, dataBroker);
         this.dataBroker = dataBroker;
         mdsalUtils = new MdsalUtils(dataBroker);
-        southboundUtils = new SouthboundUtils(mdsalUtils);
+        ovsdbSouthboundUtils = new OvsdbSouthboundUtils(mdsalUtils);
         nodeConntionMap = new ConcurrentHashMap();
         dbProcessor = new OperationProcessor(dataBroker);
         dbProcessor.start();
@@ -121,16 +120,16 @@ public class NodeListener implements DataTreeChangeListener<K8sNodes> {
 
     private synchronized void add(K8sNodes nodeNew) {
         LOG.debug("k8sNode added - ovsdb node connecting!" + nodeNew);
-        ConnectionInfo connectionInfo = OvsdbUtil.getConnectionInfo(
+        ConnectionInfo connectionInfo = OvsdbSouthboundUtils.getConnectionInfo(
                 String.valueOf(nodeNew.getInternalIpAddress().getValue()),OVSDB_PORT);
-        Node node = southboundUtils.createNode(connectionInfo);
-        southboundUtils.connectOvsdbNode(connectionInfo,2000);
-        NodeId nodeId = southboundUtils.createNodeId(connectionInfo.getRemoteIp(),connectionInfo.getRemotePort());
+        Node node = ovsdbSouthboundUtils.createNode(connectionInfo);
+        ovsdbSouthboundUtils.connectOvsdbNode(connectionInfo,2000);
+        NodeId nodeId = ovsdbSouthboundUtils.createNodeId(connectionInfo.getRemoteIp(),connectionInfo.getRemotePort());
 
         try {
-            southboundUtils.addBridge(connectionInfo, southboundUtils.createInstanceIdentifier(connectionInfo),
+            ovsdbSouthboundUtils.addBridge(connectionInfo, ovsdbSouthboundUtils.createInstanceIdentifier(connectionInfo),
                     BRIDGE_NAME, nodeId, true, OvsdbFailModeStandalone.class,
-                    false, DatapathTypeSystem.class, null, null,
+                    false, DatapathTypeSystem.class, true,null, null,
                     null, null, 0);
         } catch (InterruptedException e) {
             LOG.info("addBridge failed" + e);
@@ -147,11 +146,11 @@ public class NodeListener implements DataTreeChangeListener<K8sNodes> {
 
     private synchronized void delete(K8sNodes nodeOld) {
         LOG.info("k8sNode deleted !" + nodeOld);
-        ConnectionInfo connectionInfo = OvsdbUtil.getConnectionInfo(
+        ConnectionInfo connectionInfo = OvsdbSouthboundUtils.getConnectionInfo(
                 nodeOld.getInternalIpAddress().getIpv4Address().getValue(),OVSDB_PORT);
-        Node node = southboundUtils.createNode(connectionInfo);
-        NodeId nodeId = southboundUtils.createNodeId(connectionInfo.getRemoteIp(),connectionInfo.getRemotePort());
-        final InstanceIdentifier<Node> iid = SouthboundUtils.createInstanceIdentifier(connectionInfo);
+        Node node = ovsdbSouthboundUtils.createNode(connectionInfo);
+        NodeId nodeId = ovsdbSouthboundUtils.createNodeId(connectionInfo.getRemoteIp(),connectionInfo.getRemotePort());
+        final InstanceIdentifier<Node> iid = OvsdbSouthboundUtils.createInstanceIdentifier(connectionInfo);
         mdsalUtils.delete(LogicalDatastoreType.CONFIGURATION, iid);
         nodeConntionMap.remove(nodeId.getValue());
 
@@ -159,26 +158,26 @@ public class NodeListener implements DataTreeChangeListener<K8sNodes> {
     }
 
     private void addTermininationPointForCurNode(ConnectionInfo curConnectionInfo) {
-        Node curNode = southboundUtils.createNode(curConnectionInfo);
+        Node curNode = ovsdbSouthboundUtils.createNode(curConnectionInfo);
         String curNodeIp = curConnectionInfo.getRemoteIp().getIpv4Address().getValue();
         String tunInterface1 = "vxlan-" + curNodeIp.replace(".","-");
         Map<String,String> options1 = new HashMap<>();
         options1.put("remote_ip",curNodeIp);
         for (ConnectionInfo otherConn:nodeConntionMap.values()) {
-            Node otherNode = southboundUtils.createNode(otherConn);
+            Node otherNode = ovsdbSouthboundUtils.createNode(otherConn);
             String remoteIp = otherConn.getRemoteIp().getIpv4Address().getValue();
             String tunInterface = "vxlan-" + remoteIp.replace(".","-");
             Map<String,String> options = new HashMap<>();
             options.put("remote_ip",remoteIp);
             dbProcessor.enqueueOperation(manager ->  {
                 InstanceIdentifier<TerminationPoint> tpIid =
-                    southboundUtils.createTerminationPointInstanceIdentifier(curNode, tunInterface);
+                        ovsdbSouthboundUtils.createTerminationPointInstanceIdentifier(curNode, tunInterface);
                 TerminationPoint tp = createTerminationPoint(tunInterface,options,tpIid);
                 manager.mergeToTransaction(LogicalDatastoreType.CONFIGURATION,tpIid,tp,false);
             });
             dbProcessor.enqueueOperation(manager ->  {
                 InstanceIdentifier<TerminationPoint> tpIid =
-                    southboundUtils.createTerminationPointInstanceIdentifier(otherNode, tunInterface1);
+                        ovsdbSouthboundUtils.createTerminationPointInstanceIdentifier(otherNode, tunInterface1);
                 TerminationPoint tp = createTerminationPoint(tunInterface1,options1,tpIid);
                 manager.mergeToTransaction(LogicalDatastoreType.CONFIGURATION,tpIid,tp,false);
             });
@@ -210,15 +209,15 @@ public class NodeListener implements DataTreeChangeListener<K8sNodes> {
     }
 
     private void delTermininationPointForCurNode(ConnectionInfo curConnectionInfo) {
-        Node delNode = southboundUtils.createNode(curConnectionInfo);
+        Node delNode = ovsdbSouthboundUtils.createNode(curConnectionInfo);
         String remoteIp = curConnectionInfo.getRemoteIp().getIpv4Address().getValue();
         String tunInterface = "vxlan-" + remoteIp.replace(".","-");
         for (ConnectionInfo otherConn:nodeConntionMap.values()) {
-            Node otherNode = southboundUtils.createNode(otherConn);
+            Node otherNode = ovsdbSouthboundUtils.createNode(otherConn);
 
             dbProcessor.enqueueOperation(manager -> {
                 InstanceIdentifier<TerminationPoint> tpId =
-                     southboundUtils.createTerminationPointInstanceIdentifier(otherNode,tunInterface);
+                        ovsdbSouthboundUtils.createTerminationPointInstanceIdentifier(otherNode,tunInterface);
                 manager.addDeleteOperationToTxChain(LogicalDatastoreType.CONFIGURATION,tpId);
             });
         }
