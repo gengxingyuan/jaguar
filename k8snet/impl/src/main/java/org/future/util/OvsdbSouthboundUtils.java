@@ -25,7 +25,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
-import org.opendaylight.ovsdb.utils.config.ConfigProperties;
+//import org.opendaylight.ovsdb.utils.config.ConfigProperties;
 import org.opendaylight.ovsdb.utils.mdsal.utils.MdsalUtils;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IetfInetUtil;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
@@ -858,112 +858,6 @@ public class OvsdbSouthboundUtils {
         Map<String, String> option = new HashMap<>();
         option.put("peer", peerPortName);
         return addTerminationPoint(node, bridgeName, portName, PATCH_PORT_TYPE, option);
-    }
-
-    private String getControllerIPAddress() {
-        String addressString = ConfigProperties.getProperty(this.getClass(), "ovsdb.controller.address");
-        if (addressString != null) {
-            try {
-                if (InetAddress.getByName(addressString) != null) {
-                    return addressString;
-                }
-            } catch (UnknownHostException e) {
-                LOG.error("Host {} is invalid", addressString, e);
-            }
-        }
-
-        addressString = ConfigProperties.getProperty(this.getClass(), "of.address");
-        if (addressString != null) {
-            try {
-                if (InetAddress.getByName(addressString) != null) {
-                    return addressString;
-                }
-            } catch (UnknownHostException e) {
-                LOG.error("Host {} is invalid", addressString, e);
-            }
-        }
-
-        return null;
-    }
-
-    private short getControllerOFPort() {
-        short openFlowPort = OPENFLOW_PORT;
-        String portString = ConfigProperties.getProperty(this.getClass(), "of.listenPort");
-        if (portString != null) {
-            try {
-                openFlowPort = Short.parseShort(portString);
-            } catch (NumberFormatException e) {
-                LOG.warn("Invalid port:{}, use default({})", portString,
-                        openFlowPort, e);
-            }
-        }
-        return openFlowPort;
-    }
-
-    public List<String> getControllersFromOvsdbNode(Node node) {
-        List<String> controllersStr = new ArrayList<>();
-
-        String controllerIpStr = getControllerIPAddress();
-        if (controllerIpStr != null) {
-            // If codepath makes it here, the ip address to be used was explicitly provided.
-            // Being so, also fetch openflowPort provided via ConfigProperties.
-            controllersStr.add(OPENFLOW_CONNECTION_PROTOCOL
-                    + ":" + controllerIpStr + ":" + getControllerOFPort());
-        } else {
-            // Check if ovsdb node has manager entries
-            OvsdbNodeAugmentation ovsdbNodeAugmentation = extractOvsdbNode(node);
-            if (ovsdbNodeAugmentation != null) {
-                List<ManagerEntry> managerEntries = ovsdbNodeAugmentation.getManagerEntry();
-                if (managerEntries != null && !managerEntries.isEmpty()) {
-                    for (ManagerEntry managerEntry : managerEntries) {
-                        if (managerEntry == null || managerEntry.getTarget() == null) {
-                            continue;
-                        }
-                        String[] tokens = managerEntry.getTarget().getValue().split(":");
-                        if (tokens.length == 3 && tokens[0].equalsIgnoreCase("tcp")) {
-                            controllersStr.add(OPENFLOW_CONNECTION_PROTOCOL
-                                    + ":" + tokens[1] + ":" + getControllerOFPort());
-                        } else if (tokens[0].equalsIgnoreCase("ptcp")) {
-                            ConnectionInfo connectionInfo = ovsdbNodeAugmentation.getConnectionInfo();
-                            if (connectionInfo != null && connectionInfo.getLocalIp() != null) {
-                                controllerIpStr = String.valueOf(connectionInfo.getLocalIp().getValue());
-                                controllersStr.add(OPENFLOW_CONNECTION_PROTOCOL
-                                        + ":" + controllerIpStr + ":" + OPENFLOW_PORT);
-                            } else {
-                                LOG.warn("Ovsdb Node does not contain connection info: {}", node);
-                            }
-                        } else {
-                            LOG.trace("Skipping manager entry {} for node {}",
-                                    managerEntry.getTarget(), node.getNodeId().getValue());
-                        }
-                    }
-                } else {
-                    LOG.warn("Ovsdb Node does not contain manager entries : {}", node);
-                }
-            }
-        }
-
-        if (controllersStr.isEmpty()) {
-            // Neither user provided ip nor ovsdb node has manager entries. Lets use local machine ip address.
-            LOG.debug("Use local machine ip address as a OpenFlow Controller ip address");
-            controllerIpStr = getLocalControllerHostIpAddress();
-            if (controllerIpStr != null) {
-                controllersStr.add(OPENFLOW_CONNECTION_PROTOCOL
-                        + ":" + controllerIpStr + ":" + OPENFLOW_PORT);
-            }
-        }
-
-        if (controllersStr.isEmpty()) {
-            LOG.warn("Failed to determine OpenFlow controller ip address");
-        } else if (LOG.isDebugEnabled()) {
-            controllerIpStr = "";
-            for (String currControllerIpStr : controllersStr) {
-                controllerIpStr += " " + currControllerIpStr;
-            }
-            LOG.debug("Found {} OpenFlow Controller(s) :{}", controllersStr.size(), controllerIpStr);
-        }
-
-        return controllersStr;
     }
 
     private String getLocalControllerHostIpAddress() {
