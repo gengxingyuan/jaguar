@@ -246,7 +246,7 @@ def setup_interface(container_id, cni_netns, cni_ifname,
             veth_inside_iface.up()
 
         # Set the gateway
-        # ns_ipdb.routes.add(dst='default', gateway=gateway_ip).commit()
+        ns_ipdb.routes.add(dst='default', oif=ns_ipdb.interfaces[cni_ifname]['index']).commit()
 
         return veth_outside
     except Exception as e:
