@@ -102,8 +102,8 @@ def ensure_cidr_conf():
         if not os.path.exists("/etc/jaguar"):
             os.makedirs("/etc/jaguar")
 
-        if not os.path.exists('/etc/jaguar/ip.conf'):
-            f = open('/etc/jaguar/ip.conf','w')
+        if not os.path.exists(JAGUAR_IPAM_CONFIG_FILE):
+            f = open(JAGUAR_IPAM_CONFIG_FILE,'w')
             f.close()
 
         cf = ConfigParser.ConfigParser()
@@ -299,13 +299,13 @@ def cni_del(container_id, cni_ifname):
     except Exception:
         message = "failed to delete OVS port %s" % container_id[:15]
         print(message)
-    ip_address = '127.0.0.1'
+    ipv4_address = '127.0.0.1'
     ns_ipdb = pyroute2.IPDB(nl=pyroute2.NetNS(container_id),
                             mode='explicit')
     with ns_ipdb.interfaces[cni_ifname] as inside_iface:
-        ip_address = inside_iface.ipaddr[1][0]
+        ipv4_address = inside_iface.ipaddr.ipv4[0]['address']
     ns_ipdb.release()
-    release_ip(ip_address)
+    release_ip(ipv4_address)
 
     command = "rm -f /var/run/netns/%s" % container_id
     call_popen(shlex.split(command))
