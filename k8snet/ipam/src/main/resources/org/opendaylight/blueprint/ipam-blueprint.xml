@@ -15,7 +15,7 @@
     <odl:clustered-app-config binding-class="org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.IpamConfig" id="ipamConfig" >
         <odl:default-config><![CDATA[
           <ipam-config xmlns="org.future.ipam">
-            <pod_cidr>10.0.0.0/8</pod_cidr>
+            <pod_cidr>172.100.0.0/16</pod_cidr>
           </ipam-config>
         ]]></odl:default-config>
     </odl:clustered-app-config>

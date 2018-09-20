@@ -80,15 +80,21 @@ def get_cidr(controller_ip,controller_port,name):
 def add_host_route(global_cidr, local_cidr):
     local_net = IPNetwork(local_cidr)
     ip_list = list(local_net)
-    ip_n = filter(lambda ip:(not str(ip).endswith('.0') and not str(ip).endswith('.255')),ip_list)
-    gateway_ip = str(ip_n[0])
-    mask = int(local_cidr.split('/')[1])
+    #the first address is a net address
+    del(ip_list[0])
+    ip_n = filter(lambda ip:not str(ip).endswith('.255'),ip_list)
+    ip_int_all = []
+    for item in ip_n:
+        ip_int_all.append(socket.ntohl(struct.unpack("I",socket.inet_aton(str(item)))[0]))
+    ip_int_all.sort()
+
+    br_ip = socket.inet_ntoa(struct.pack('I',socket.htonl(ip_int_all[0])))
 
     ipdb = pyroute2.IPDB(mode='explicit')
     try:
         with ipdb.interfaces[BRIDGE_NAME] as bridge_iface:
+            bridge_iface.add_ip(br_ip + '/' + local_cidr.split('/')[1])
             bridge_iface.up()
-            bridge_iface.add_ip(gateway_ip,mask)
 
         # Set global route
         ipdb.routes.add(dst=global_cidr, oif=ipdb.interfaces[BRIDGE_NAME].index).commit()
@@ -102,8 +108,8 @@ def ensure_cidr_conf():
         if not os.path.exists("/etc/jaguar"):
             os.makedirs("/etc/jaguar")
 
-        if not os.path.exists('/etc/jaguar/ip.conf'):
-            f = open('/etc/jaguar/ip.conf','w')
+        if not os.path.exists(JAGUAR_IPAM_CONFIG_FILE):
+            f = open(JAGUAR_IPAM_CONFIG_FILE,'w')
             f.close()
 
         cf = ConfigParser.ConfigParser()
@@ -116,6 +122,8 @@ def ensure_cidr_conf():
             cf.write(open(JAGUAR_IPAM_CONFIG_FILE, "w"))
             global_cidr,local_cidr = get_cidr('192.168.139.10', 8181, socket.gethostname())
         else:
+            if not cf.has_section('local'):
+                cf.add_section('local')
             if not cf.has_option('local','cidr'):
                 controller_ip = cf.get("global", "controller_ip")
                 controller_port = cf.getint("global", "controller_port")
@@ -146,14 +154,17 @@ def allocate_ipaddr():
     local_net = IPNetwork(local_cidr)
 
     ip_list = list(local_net)
+    # the first address is a net address
+    del(ip_list[0])
     ip_int_all = []
-    ip_n = filter(lambda ip:(not str(ip).endswith('.0') and not str(ip).endswith('.255')),ip_list)
+    ip_n = filter(lambda ip:not str(ip).endswith('.255'),ip_list)
     for item in ip_n:
         ip_int_all.append(socket.ntohl(struct.unpack("I",socket.inet_aton(str(item)))[0]))
     ip_int_all.sort()
 
+    gateway_ip = socket.inet_ntoa(struct.pack('I',socket.htonl(ip_int_all[0])))
     if not cf.has_option('local','ips'):
-        gateway_ip = socket.inet_ntoa(struct.pack('I',socket.htonl(ip_int_all[0])))
+
         allocated_ip = socket.inet_ntoa(struct.pack('I',socket.htonl(ip_int_all[1])))
         ips_str = gateway_ip + ',' + allocated_ip
         #print(ips_str)
@@ -164,11 +175,11 @@ def allocate_ipaddr():
         for tmp_assigned_ip in ipstr_assigned:
             ip_int_assigned.append(socket.ntohl(struct.unpack("I",socket.inet_aton(str(tmp_assigned_ip)))[0]))
 
-        gateway_ip = socket.inet_ntoa(struct.pack('I',socket.htonl(ip_int_all[0])))
-        ip_int_to_be_assigned = list(set(ip_int_all)^set(ip_int_assigned)) # list(set(a).difference(set(b)))
-        ip_int_to_be_assigned.sort()
-        allocated_ip = socket.inet_ntoa(struct.pack('I',socket.htonl(ip_int_to_be_assigned[0])))
-        ips_str = ips_str + ',' + allocated_ip
+        ip_int_to_be_assigned = list(set(ip_int_all)^set(ip_int_assigned))
+        if len(ip_int_to_be_assigned) > 0:
+            ip_int_to_be_assigned.sort()
+            allocated_ip = socket.inet_ntoa(struct.pack('I',socket.htonl(ip_int_to_be_assigned[0])))
+            ips_str = ips_str + ',' + allocated_ip
 
     cf.set("local", "ips", ips_str)
 
@@ -207,7 +218,7 @@ class JAGUARCNIException(Exception):
 
 
 def setup_interface(container_id, cni_netns, cni_ifname,
-                    mac_address, ip_address, mask, gateway_ip):
+                    mac_address, ip_address, gateway_ip):
     try:
         if not os.path.exists("/var/run/netns"):
             os.makedirs("/var/run/netns")
@@ -243,16 +254,18 @@ def setup_interface(container_id, cni_netns, cni_ifname,
         # Change the name of veth_inside to $cni_ifname
         ns_ipdb = pyroute2.IPDB(nl=pyroute2.NetNS(container_id),
                                 mode='explicit')
+        ifindex = 0
         # Configure veth_inside: set name, mtu, mac address, ip, and bring up
         with ns_ipdb.interfaces[veth_inside] as veth_inside_iface:
+            ifindex = veth_inside_iface.index
             veth_inside_iface.ifname = cni_ifname
             veth_inside_iface.address = mac_address
             veth_inside_iface.mtu = 1400
-            veth_inside_iface.add_ip(ip_address,mask)
+            veth_inside_iface.add_ip(ip_address)
             veth_inside_iface.up()
 
-        # Set the gateway ,     oif = ns_ipdb.interfaces[veth_inside].index
-        ns_ipdb.routes.add(dst='default', oif=ns_ipdb.interfaces[cni_ifname]['index']).commit()
+        # Set the gateway
+        ns_ipdb.routes.add(dst='default', oif=ifindex).commit()
 
         return veth_outside
     except Exception as e:
@@ -271,11 +284,11 @@ def randomMAC():
 def cni_add(cni_ifname, cni_netns, namespace, pod_name, container_id):
 
     ip_address,gateway_ip,local_cidr,global_cidr = allocate_ipaddr()
-    mask = int(local_cidr.split('/')[1])
+    ip_address = ip_address + '/' + local_cidr.split('/')[1]
     mac_address = randomMAC()
 
     veth_outside = setup_interface(container_id, cni_netns, cni_ifname,
-                                   mac_address, ip_address, mask,
+                                   mac_address, ip_address,
                                    gateway_ip)
 
     iface_id = "%s_%s" % (namespace, pod_name)
@@ -299,13 +312,13 @@ def cni_del(container_id, cni_ifname):
     except Exception:
         message = "failed to delete OVS port %s" % container_id[:15]
         print(message)
-    ip_address = '127.0.0.1'
+    ipv4_address = '127.0.0.1'
     ns_ipdb = pyroute2.IPDB(nl=pyroute2.NetNS(container_id),
                             mode='explicit')
     with ns_ipdb.interfaces[cni_ifname] as inside_iface:
-        ip_address = inside_iface.ipaddr[1][0]
+        ipv4_address = inside_iface.ipaddr.ipv4[0]['address']
     ns_ipdb.release()
-    release_ip(ip_address)
+    release_ip(ipv4_address)
 
     command = "rm -f /var/run/netns/%s" % container_id
     call_popen(shlex.split(command))
