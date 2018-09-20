@@ -88,12 +88,12 @@ def add_host_route(global_cidr, local_cidr):
         ip_int_all.append(socket.ntohl(struct.unpack("I",socket.inet_aton(str(item)))[0]))
     ip_int_all.sort()
 
-    gateway_ip = socket.inet_ntoa(struct.pack('I',socket.htonl(ip_int_all[0])))
+    br_ip = socket.inet_ntoa(struct.pack('I',socket.htonl(ip_int_all[0])))
 
     ipdb = pyroute2.IPDB(mode='explicit')
     try:
         with ipdb.interfaces[BRIDGE_NAME] as bridge_iface:
-            bridge_iface.add_ip(gateway_ip + '/' + global_cidr.split('/')[1])
+            bridge_iface.add_ip(br_ip + '/' + local_cidr.split('/')[1])
             bridge_iface.up()
 
         # Set global route
