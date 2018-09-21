@@ -10,4 +10,4 @@ jaguar-build:
 
 test:
   stage: test
-  script: echo "Running tests"
+  script: robot /home/systemtest/systemtest.robot
