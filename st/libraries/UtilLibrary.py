@@ -22,7 +22,7 @@ class RemoteHost:
         self.user = user
         self.password = password
         self.lib = SSHLibrary()
-        self.lib.open_connection(self.host)
+        self.lib.open_connection(self.host,port=810)
         self.lib.login(username=self.user, password=self.password)
 
     def __del__(self):
@@ -155,7 +155,7 @@ def execute_ssh_command(ip, username, password, command):
     """
     print "executing ssh command"
     lib = SSHLibrary()
-    lib.open_connection(ip)
+    lib.open_connection(ip,port=810)
     lib.login(username=username, password=password)
     print "login done"
     cmd_response = lib.execute_command(command)
@@ -225,7 +225,7 @@ def stopAllControllers(username, password, karafhome, *ips):
 
 def wait_for_controller_stopped(ip, username, password, karafHome):
     lib = SSHLibrary()
-    lib.open_connection(ip)
+    lib.open_connection(ip,port=810)
     lib.login(username=username, password=password)
 
     # Wait 1 minute for the controller to stop gracefully
