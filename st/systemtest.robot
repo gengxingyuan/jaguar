@@ -1,24 +1,25 @@
 *** Settings ***
 Library           libraries/UtilLibrary.py
+Variables         variables/Variables.py
 
 *** Test Cases ***
 Smoke
-    [Setup]    InstallJaguar    10.42.118.80    zte    zte123
-    [Timeout]    10 minutes
-    Execute Ssh Command     10.42.118.80    zte    zte123    kubectl create -f /home/zte/pod-test.yaml && kubectl create -f /home/zte/pod2-test.yaml
+    [Setup]    InstallJaguar    ${JAGUAR_SYSTEM_TEST_IP}    ${USER}    ${PASSWORD}
+    [Timeout]    60 minutes
+    Execute Ssh Command     ${JAGUAR_SYSTEM_TEST_IP}    ${USER}    ${PASSWORD}    kubectl create -f /root/test.yaml && kubectl create -f /root/test1.yaml
     Sleep    10
-    ${cmd_response}    Execute Ssh Command    10.42.118.80    zte    zte123    kubectl get pods
+    ${cmd_response}    Execute Ssh Command    ${JAGUAR_SYSTEM_TEST_IP}    ${USER}    ${PASSWORD}    kubectl get pods
     Should Contain    ${cmd_response}    Running
     Should Not Contain Any    ${cmd_response}    ContainerCreating
-    Execute Ssh Command    10.42.118.80    zte    zte123    kubectl delete -f /home/zte/pod-test.yaml && kubectl delete -f pod2-test.yaml
-    [Teardown]    StopJaguar    10.42.118.80    zte    zte123
+    Execute Ssh Command    ${JAGUAR_SYSTEM_TEST_IP}    ${USER}    ${PASSWORD}    kubectl delete -f /root/test.yaml && kubectl delete -f /root/test1.yaml
+    [Teardown]    StopJaguar    ${JAGUAR_SYSTEM_TEST_IP}    ${USER}    ${PASSWORD}
 
 *** Keywords ***
 InstallJaguar
     [Arguments]    ${IP}    ${USER}    ${PASSWORD}
-    Install And Startcontroller    ${IP}    ${USER}    ${PASSWORD}    /home/zte/sdnlab/jaguar/karaf/target/jaguar-karaf-0.1.0-SNAPSHOT.zip    /home/zte/jaguartest/
-    Wait For Controller Up    ${IP}
+    Install And Startcontroller    ${IP}    ${USER}    ${PASSWORD}    /home/gitlab-runner/.m2/repository/org/future/jaguar-karaf/0.1.0-SNAPSHOT/jaguar-karaf-0.1.0-SNAPSHOT.zip    /home/jaguartest/
+    Sleep    30
 
 StopJaguar
     [Arguments]    ${IP}    ${USER}    ${PASSWORD}
-    Stopcontroller    ${IP}    ${USER}    ${PASSWORD}    /home/zte/jaguartest/jaguar
+    Stopcontroller    ${IP}    ${USER}    ${PASSWORD}    /home/jaguartest/jaguar
