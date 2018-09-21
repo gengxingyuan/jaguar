@@ -6,7 +6,7 @@
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
 
-package org.future.listener;
+package org.future.network.jaguar.ctl.listener;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import java.util.Collection;

@@ -5,9 +5,9 @@
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
-package org.future.impl;
+package org.future.network.jaguar.ctl;
 
-import org.future.listener.NodeListener;
+import org.future.network.jaguar.ctl.listener.NodeListener;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
