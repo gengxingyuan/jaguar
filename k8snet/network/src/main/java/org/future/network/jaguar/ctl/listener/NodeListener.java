@@ -6,7 +6,7 @@
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
 
-package org.future.listener;
+package org.future.network.jaguar.ctl.listener;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -18,8 +18,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import javax.annotation.Nonnull;
 
-import org.future.util.OperationProcessor;
-import org.future.util.OvsdbSouthboundUtils;
+import org.future.network.jaguar.ctl.util.OperationProcessor;
+import org.future.network.jaguar.ctl.util.OvsdbSouthboundUtils;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.controller.md.sal.binding.api.DataObjectModification;
 import org.opendaylight.controller.md.sal.binding.api.DataTreeChangeListener;
@@ -163,27 +163,29 @@ public class NodeListener implements DataTreeChangeListener<K8sNodes> {
     private void addTermininationPointForCurNode(ConnectionInfo curConnectionInfo) {
         Node curNode = ovsdbSouthboundUtils.createNode(curConnectionInfo);
         String curNodeIp = curConnectionInfo.getRemoteIp().getIpv4Address().getValue();
-        String tunInterface1 = "vxlan-" + curNodeIp.replace(".","-");
+        String otherNodeVXLANPort = "vxlan-" + curNodeIp.replace(".","-");
         Map<String,String> options1 = new HashMap<>();
         options1.put("remote_ip",curNodeIp);
         for (ConnectionInfo otherConn:nodeConntionMap.values()) {
             Node otherNode = ovsdbSouthboundUtils.createNode(otherConn);
             String remoteIp = otherConn.getRemoteIp().getIpv4Address().getValue();
-            String tunInterface = "vxlan-" + remoteIp.replace(".","-");
-            Map<String,String> options = new HashMap<>();
-            options.put("remote_ip",remoteIp);
-            dbProcessor.enqueueOperation(manager ->  {
-                InstanceIdentifier<TerminationPoint> tpIid =
-                        ovsdbSouthboundUtils.createTerminationPointInstanceIdentifier(curNode, tunInterface);
-                TerminationPoint tp = createTerminationPoint(tunInterface,options,tpIid);
-                manager.mergeToTransaction(LogicalDatastoreType.CONFIGURATION,tpIid,tp,false);
-            });
-            dbProcessor.enqueueOperation(manager ->  {
-                InstanceIdentifier<TerminationPoint> tpIid =
-                        ovsdbSouthboundUtils.createTerminationPointInstanceIdentifier(otherNode, tunInterface1);
-                TerminationPoint tp = createTerminationPoint(tunInterface1,options1,tpIid);
-                manager.mergeToTransaction(LogicalDatastoreType.CONFIGURATION,tpIid,tp,false);
-            });
+            if (!curNodeIp.equals(remoteIp)) {
+                String curNodeVXLANPort = "vxlan-" + remoteIp.replace(".", "-");
+                Map<String, String> options = new HashMap<>();
+                options.put("remote_ip", remoteIp);
+                dbProcessor.enqueueOperation(manager -> {
+                    InstanceIdentifier<TerminationPoint> tpIid =
+                            ovsdbSouthboundUtils.createTerminationPointInstanceIdentifier(curNode, curNodeVXLANPort);
+                    TerminationPoint tp = createTerminationPoint(curNodeVXLANPort, options, tpIid);
+                    manager.mergeToTransaction(LogicalDatastoreType.CONFIGURATION, tpIid, tp, false);
+                });
+                dbProcessor.enqueueOperation(manager -> {
+                    InstanceIdentifier<TerminationPoint> tpIid =
+                            ovsdbSouthboundUtils.createTerminationPointInstanceIdentifier(otherNode, otherNodeVXLANPort);
+                    TerminationPoint tp = createTerminationPoint(otherNodeVXLANPort, options1, tpIid);
+                    manager.mergeToTransaction(LogicalDatastoreType.CONFIGURATION, tpIid, tp, false);
+                });
+            }
         }
     }
 

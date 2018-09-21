@@ -17,7 +17,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
   <repository>mvn:org.opendaylight.dluxapps/features-dluxapps/{{VERSION}}/xml/features</repository>
   <repository>mvn:org.opendaylight.ovsdb/southbound-features/{{VERSION}}/xml/features</repository>
   <repository>mvn:io.fabric8.kubernetes/kubernetes-karaf/${kubernetes.client.version}/xml/features</repository>
-  <feature name='odl-jaguar-api' version='${project.version}' description='OpenDaylight :: jaguar :: api'>
+  <feature name='odl-jaguar-api' version='${project.version}' description='Jaguar :: api'>
     <feature version='${mdsal.model.version}'>odl-mdsal-models</feature>
     <bundle>mvn:org.future/k8snet-model/{{VERSION}}</bundle>
   </feature>
@@ -27,7 +27,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     <feature version='${kubernetes.client.version}'>kubernetes-client</feature>
     <bundle>mvn:org.future/k8snet-watcher/{{VERSION}}</bundle>
   </feature>
-  <feature name='odl-jaguar' version='${project.version}' description='OpenDaylight :: jaguar'>
+  <feature name='odl-jaguar' version='${project.version}' description='Jaguar'>
     <feature version='${mdsal.version}'>odl-mdsal-broker</feature>
     <feature version='${project.version}'>odl-jaguar-api</feature>
     <feature version='${project.version}'>odl-k8snet-watcher</feature>
@@ -35,18 +35,18 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     <bundle>mvn:org.opendaylight.ovsdb/utils.mdsal-utils/${ovsdb.version}</bundle>
     <bundle>mvn:org.opendaylight.ovsdb/utils.southbound-utils/${ovsdb.version}</bundle>
     <bundle>mvn:org.future/jaguar-ipam/{{VERSION}}</bundle>
-    <bundle>mvn:org.future/jaguar-impl/{{VERSION}}</bundle>
+    <bundle>mvn:org.future/jaguar-network-ctl/{{VERSION}}</bundle>
   </feature>
-  <feature name='odl-jaguar-rest' version='${project.version}' description='OpenDaylight :: jaguar :: REST'>
+  <feature name='odl-jaguar-rest' version='${project.version}' description='Jaguar :: REST'>
     <feature version="${project.version}">odl-jaguar</feature>
     <feature version="${restconf.version}">odl-restconf</feature>
   </feature>
-  <feature name='odl-jaguar-ui' version='${project.version}' description='OpenDaylight :: jaguar :: UI'>
+  <feature name='odl-jaguar-ui' version='${project.version}' description='Jaguar :: UI'>
     <feature version="${project.version}">odl-jaguar-rest</feature>
     <feature version="${restconf.version}">odl-mdsal-apidocs</feature>
     <feature version="${dluxapps.version}">odl-dluxapps-yangman</feature>
   </feature>
-  <feature name='odl-jaguar-cli' version='${project.version}' description='OpenDaylight :: jaguar :: CLI'>
+  <feature name='odl-jaguar-cli' version='${project.version}' description='Jaguar :: CLI'>
     <feature version="${project.version}">odl-jaguar</feature>
     <bundle>mvn:org.future/jaguar-cli/{{VERSION}}</bundle>
   </feature>
