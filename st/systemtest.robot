@@ -18,7 +18,7 @@ Smoke
 InstallJaguar
     [Arguments]    ${IP}    ${USER}    ${PASSWORD}
     Install And Startcontroller    ${IP}    ${USER}    ${PASSWORD}    /home/gitlab-runner/.m2/repository/org/future/jaguar-karaf/0.1.0-SNAPSHOT/jaguar-karaf-0.1.0-SNAPSHOT.zip    /home/jaguartest/
-    Wait For Controller Up    ${IP}
+    Sleep    30
 
 StopJaguar
     [Arguments]    ${IP}    ${USER}    ${PASSWORD}
