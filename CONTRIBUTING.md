@@ -1,4 +1,3 @@
-
 ## 1. 如何下载项目源代码?
     git clone https://gitlab.com/sdnlab/jaguar.git
     或者
@@ -28,14 +27,14 @@
     打开https://gitlab.com/sdnlab/jaguar
     左侧Issues列表或看板里，选择感兴趣的功能，在comments里填写对功能的理解及大概实现思路
     开会讨论确定实现方案，并确定主要参与者
-    开发的代码提交到dev分支，代码提交完成后，创建Merge_Request，待Code Review通过后，即完成功能开发
+    本地创建分支开发代码，代码git push origin yourbranch 提交,提交完成后，创建Merge_Request，待Code Review通过后，即完成功能开发
     
 ## 6. 本地修改代码后,如何验证?
     当前需要在本地搭建一套K8S,才能进行验证.
-    后续SDNLAB计划提供一套三节点的云服务器集群,在这套环境里部署K8S供大家测试,验证使用
+    SDNLAB已提供一套三节点的云服务器集群,这套环境里部署K8S,大家提交代码后会触发自动测试验证
 
 ## 7. 如何提交代码?
-    项目的Developer clone项目代码后,请checout到dev分支,在该分支上完成修改并push到gitlab
+    项目的Developer clone项目代码后,请本地创建分支(git branch yourbranch),在该分支上完成修改并push到gitlab (git push origin yourbranch)
     然后登陆gitlab,创建Merge_Request,代码审核通过后,变更会被合并到matser分支
     
 具体操作可参考下[gitlab help](https://gitlab.com/help)
