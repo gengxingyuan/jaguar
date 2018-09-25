@@ -1,7 +1,7 @@
 module k8s-apiserver-config {
     yang-version 1;
 
-    namespace "org.future.k8s.apiserver.config";
+    namespace "com.sdnlab.k8s.apiserver.config";
     prefix k8s-apiserver-config;
 
     description

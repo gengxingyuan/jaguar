@@ -1,7 +1,7 @@
 module ipam {
     yang-version 1;
 
-    namespace "org.future.ipam";
+    namespace "com.sdnlab.ipam";
     prefix ipam;
 
     import ietf-inet-types {

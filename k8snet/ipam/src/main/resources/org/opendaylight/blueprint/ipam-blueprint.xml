@@ -12,15 +12,15 @@
         interface="org.opendaylight.controller.md.sal.binding.api.DataBroker"
         odl:type="default" />
 
-    <odl:clustered-app-config binding-class="org.opendaylight.yang.gen.v1.org.future.ipam.rev180807.IpamConfig" id="ipamConfig" >
+    <odl:clustered-app-config binding-class="org.opendaylight.yang.gen.v1.com.sdnlab.ipam.rev180807.IpamConfig" id="ipamConfig" >
         <odl:default-config><![CDATA[
-          <ipam-config xmlns="org.future.ipam">
+          <ipam-config xmlns="com.sdnlab.ipam">
             <pod_cidr>172.100.0.0/16</pod_cidr>
           </ipam-config>
         ]]></odl:default-config>
     </odl:clustered-app-config>
 
-    <bean id="ipamProvider" class="org.future.k8snet.ipam.IpamProvider"
+    <bean id="ipamProvider" class="com.sdnlab.k8snet.ipam.IpamProvider"
         init-method="init" destroy-method="close">
         <argument>
             <bean factory-ref="ipamConfig" factory-method="getPodCidr" />
@@ -28,7 +28,7 @@
         <argument ref="dataBroker" />
     </bean>
 
-    <bean id="nodeListener" class="org.future.k8snet.ipam.listener.NodeListener"
+    <bean id="nodeListener" class="com.sdnlab.k8snet.ipam.listener.NodeListener"
         init-method="init" destroy-method="close">
         <argument>
             <bean factory-ref="ipamConfig" factory-method="getPodCidr" />

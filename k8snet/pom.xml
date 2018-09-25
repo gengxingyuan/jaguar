@@ -15,10 +15,10 @@ and is available at http://www.eclipse.org/legal/epl-v10.html INTERNAL
     <relativePath/>
   </parent>
 
-  <groupId>org.future</groupId>
+  <groupId>com.sdnlab</groupId>
   <artifactId>k8snet-aggregator</artifactId>
   <version>0.1.0-SNAPSHOT</version>
-  <name>Jaguar :: org.future :: ${project.artifactId}</name> <!-- DO NOT CHANGE - Used by Sonar to set project name -->
+  <name>Jaguar :: com.sdnlab :: ${project.artifactId}</name> <!-- DO NOT CHANGE - Used by Sonar to set project name -->
   <packaging>pom</packaging>
 
   <modules>
