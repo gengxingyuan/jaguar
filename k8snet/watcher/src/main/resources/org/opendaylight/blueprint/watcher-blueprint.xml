@@ -17,9 +17,9 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
   <reference id="clusterSingletonServiceProvider"
     interface="org.opendaylight.mdsal.singleton.common.api.ClusterSingletonServiceProvider" />
 
-  <odl:clustered-app-config binding-class="org.opendaylight.yang.gen.v1.org.future.k8s.apiserver.config.rev180307.K8sApiserverConfig" id="k8sApiserverConfig" >
+  <odl:clustered-app-config binding-class="org.opendaylight.yang.gen.v1.com.sdnlab.k8s.apiserver.config.rev180307.K8sApiserverConfig" id="k8sApiserverConfig" >
     <odl:default-config><![CDATA[
-      <k8s-apiserver-config xmlns="org.future.k8s.apiserver.config">
+      <k8s-apiserver-config xmlns="com.sdnlab.k8s.apiserver.config">
         <scheme>https</scheme>
         <master-ip>192.168.139.10</master-ip>
         <port>6443</port>
@@ -31,7 +31,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     ]]></odl:default-config>
   </odl:clustered-app-config>
   <bean id="k8SClientInstance"
-        class="org.future.k8snet.singleton.KubernetesClientSingleton" destroy-method="close">
+        class="com.sdnlab.k8snet.singleton.KubernetesClientSingleton" destroy-method="close">
     <argument ref="k8sApiserverConfig" />
     <argument ref="dataBroker" />
     <argument ref="clusterSingletonServiceProvider" />

@@ -15,15 +15,15 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     interface="org.opendaylight.controller.md.sal.binding.api.DataBroker"
     odl:type="default" />
 
-  <bean id="cliCommandsImpl" class="org.future.cli.impl.JaguarCliCommandsImpl">
+  <bean id="cliCommandsImpl" class="com.sdnlab.cli.impl.JaguarCliCommandsImpl">
     <argument ref="dataBroker" />
   </bean>
   <service ref="cliCommandsImpl" odl:type="default"
-    interface="org.future.cli.api.JaguarCliCommands" />
+    interface="com.sdnlab.cli.api.JaguarCliCommands" />
 
     <command-bundle xmlns="http://karaf.apache.org/xmlns/shell/v1.0.0">
         <command name="test-command">
-            <action class="org.future.cli.commands.JaguarCliTestCommand">
+            <action class="com.sdnlab.cli.commands.JaguarCliTestCommand">
                 <argument ref="cliCommandsImpl"/>
             </action>
         </command>
