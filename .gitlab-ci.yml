@@ -6,7 +6,7 @@ jaguar-build:
   stage: build
   tags:
     - jaguar
-  script: "mvn clean install -DskipTests"
+  script: "mvn clean install"
 
 test:
   stage: test

@@ -27,7 +27,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
   <packaging>bundle</packaging>
 
   <properties>
-    <skipITs>false</skipITs>
+    <skipITs>true</skipITs>
     <karaf.distro.groupId>com.sdnlab</karaf.distro.groupId>
     <karaf.distro.artifactId>jaguar-karaf</karaf.distro.artifactId>
     <karaf.distro.version>0.1.0-SNAPSHOT</karaf.distro.version>
