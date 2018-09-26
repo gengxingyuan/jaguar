@@ -11,6 +11,14 @@ Smoke
     ${cmd_response}    Execute Ssh Command    ${JAGUAR_SYSTEM_TEST_IP}    ${USER}    ${PASSWORD}    kubectl get pods
     Should Contain    ${cmd_response}    Running
     Should Not Contain Any    ${cmd_response}    ContainerCreating
+    Execute Ssh Command    ${JAGUAR_SYSTEM_TEST_IP}    ${USER}    ${PASSWORD}    ifconfig br0 172.100.1.1/25 up
+    Execute Ssh Command    ${JAGUAR_SYSTEM_TEST_IP}    ${USER}    ${PASSWORD}    route add -net 172.100.0.0/16 dev br0
+    ${ping_result}    Execute Ssh Command    ${JAGUAR_SYSTEM_TEST_IP}    ${USER}    ${PASSWORD}    ping -c 3 172.100.2.130
+    Log    ${ping_result}
+    Should Contain    ${ping_result}    0% packet loss
+    ${ping_result}    Execute Ssh Command    ${JAGUAR_SYSTEM_TEST_IP}    ${USER}    ${PASSWORD}    ping -c 3 172.100.2.2
+    Log    ${ping_result}
+    Should Contain    ${ping_result}    0% packet loss
     Execute Ssh Command    ${JAGUAR_SYSTEM_TEST_IP}    ${USER}    ${PASSWORD}    kubectl delete -f /root/test.yaml && kubectl delete -f /root/test1.yaml
     [Teardown]    StopJaguar    ${JAGUAR_SYSTEM_TEST_IP}    ${USER}    ${PASSWORD}
 
