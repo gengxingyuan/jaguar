@@ -32,7 +32,7 @@ public class JaguarIT extends AbstractMdsalTestBase {
     @Override
     public MavenUrlReference getFeatureRepo() {
         return maven()
-                .groupId("org.future")
+                .groupId("com.sdnlab")
                 .artifactId("jaguar-features")
                 .classifier("features")
                 .type("xml")
@@ -41,7 +41,7 @@ public class JaguarIT extends AbstractMdsalTestBase {
 
     @Override
     public String getFeatureName() {
-        return "odl-jaguar-ui";
+        return "sdnlab-jaguar";
     }
 
     @Override
