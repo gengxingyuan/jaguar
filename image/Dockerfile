@@ -2,24 +2,30 @@
 FROM ubuntu:16.04
 MAINTAINER zhiyifang "zhiyifang123@gmail.com"
 
+# ADD (sources.list is opt)
+ADD sources.list /etc/apt/sources.list
+ADD /target/assembly  /opt/jaguar
+
+# Set ENV
+ENV JAVA_MAX_MEM 1G
+ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-amd64
+WORKDIR /opt
+
 # Install JDK Maven && Download Jaguar
-WORKDIR /home
-RUN apt-get update \
-    && apt-get install -y openjdk-8-jdk \
-    && apt-get install -y git \
-    && apt-get install -y wget \
-    && apt-get install -y maven \
-    && git clone https://gitlab.com/sdnlab/jaguar.git \
-    && wget -q -O - https://raw.githubusercontent.com/opendaylight/odlparent/master/settings.xml > /etc/maven/settings.xml
+RUN apt-get update &&\
+    apt-get upgrade -y &&\
+    apt-get install -y openjdk-8-jdk nano &&\
+    apt-get autoclean &&\
+    apt-get autoremove
 
 # Install Jaguar
-WORKDIR /home/jaguar
-RUN mvn clean install -DskipTests
+RUN echo " /opt/jaguar/bin/karaf"  >> /opt/startup &&\
+    chmod +x /opt/jaguar/bin/karaf  &&\
+    chmod +x /opt/startup
 
 # Expose ports
-EXPOSE 8080
-EXPOSE 8181
-EXPOSE 8101
+EXPOSE 8080 8181 8101
 
 # Start jaguar
-CMD /home/jaguar/karaf/target/assembly/bin/karaf
+# Defining a command to be run after the docker is up
+ENTRYPOINT ["/opt/startup"]
