@@ -4,7 +4,6 @@ MAINTAINER zhiyifang "zhiyifang123@gmail.com"
 
 # ADD (sources.list is opt)
 ADD sources.list /etc/apt/sources.list
-ADD /target/assembly  /opt/jaguar
 
 # Set ENV
 ENV JAVA_MAX_MEM 1G
@@ -17,6 +16,11 @@ RUN apt-get update &&\
     apt-get install -y openjdk-8-jdk nano &&\
     apt-get autoclean &&\
     apt-get autoremove
+
+# Download Jaguar
+RUN wget http://repo1.maven.org/maven2/com/sdnlab/jaguar-karaf/0.1.0/jaguar-karaf-0.1.0.tar.gz &&\
+    tar -zxf jaguar-karaf-0.1.0.tar.gz -C /opt/ &&\
+    mv /opt/jaguar-karaf-0.1.0/ /opt/jaguar/
 
 # Install Jaguar
 RUN echo " /opt/jaguar/bin/karaf"  >> /opt/startup &&\
