@@ -18,9 +18,9 @@ RUN apt-get update &&\
     apt-get autoremove
 
 # Download Jaguar
-RUN wget http://repo1.maven.org/maven2/com/sdnlab/jaguar-karaf/0.1.0/jaguar-karaf-0.1.0.tar.gz &&\
-    tar -zxf jaguar-karaf-0.1.0.tar.gz -C /opt/ &&\
-    mv /opt/jaguar-karaf-0.1.0/ /opt/jaguar/
+RUN wget http://repo1.maven.org/maven2/com/sdnlab/jaguar-karaf/0.1.1-SNAPSHOT/jaguar-karaf-0.1.0-SNAPSHOT.tar.gz &&\
+    tar -zxf jaguar-karaf-0.1.0-SNAPSHOT.tar.gz -C /opt/ &&\
+    mv /opt/jaguar-karaf-0.1.0-SNAPSHOT/ /opt/jaguar/
 
 # Install Jaguar
 RUN echo " /opt/jaguar/bin/karaf"  >> /opt/startup &&\

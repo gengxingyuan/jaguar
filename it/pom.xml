@@ -20,7 +20,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
 
   <groupId>com.sdnlab</groupId>
   <artifactId>jaguar-it</artifactId>
-  <version>0.1.0</version>
+  <version>0.1.1-SNAPSHOT</version>
   <!-- <name> formatting is used by autorelease to parse and notify projects on
        build failure. Please do not modify this unless you have a good reason. -->
   <name>Jaguar :: com.sdnlab :: ${project.artifactId}</name>
@@ -30,7 +30,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     <skipITs>true</skipITs>
     <karaf.distro.groupId>com.sdnlab</karaf.distro.groupId>
     <karaf.distro.artifactId>jaguar-karaf</karaf.distro.artifactId>
-    <karaf.distro.version>0.1.0</karaf.distro.version>
+    <karaf.distro.version>0.1.1-SNAPSHOT</karaf.distro.version>
     <karaf.distro.type>zip</karaf.distro.type>
   </properties>
 

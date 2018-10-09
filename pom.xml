@@ -16,7 +16,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html INTERNAL
 
   <groupId>com.sdnlab</groupId>
   <artifactId>jaguar-aggregator</artifactId>
-  <version>0.1.0</version>
+  <version>0.1.1-SNAPSHOT</version>
   <name>jaguar</name> <!-- DO NOT CHANGE - Used by Sonar to set project name -->
   <packaging>pom</packaging>
 
