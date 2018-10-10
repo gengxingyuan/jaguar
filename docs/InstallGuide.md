@@ -9,11 +9,12 @@
    
 ## 3. 安装Jaguar
 ### 直接拉取镜像启动
-    docker pull docker.io/sdnlab/jaguar:0.1.0
-    docker run -itd docker.io/sdnlab/jaguar:0.1.0
+    docker pull sdnlab001/jaguar:0.1.0
+    docker run -itd sdnlab001/jaguar:0.1.0
 ### 手工启动版本
-    首先,解压jaguar版本jaguar-karaf-0.1.0-SNAPSHOT.zip到某个目录下，比如/home/test/
-    运行jaguar，即进入目录/home/test/ jaguar-karaf-0.1.0-SNAPSHOT/bin
+    首先,下载版本wget http://repo1.maven.org/maven2/com/sdnlab/jaguar-karaf/0.1.0/jaguar-karaf-0.1.0.zip
+    解压jaguar版本jaguar-karaf-0.1.0-SNAPSHOT.zip到某个目录下，比如/home/test/
+    运行jaguar，即进入目录/home/test/ jaguar-karaf-0.1.0/bin
     执行 ./karaf
 
 ### 启动成功后,配置k8s apiserver
