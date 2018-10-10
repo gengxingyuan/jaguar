@@ -13,7 +13,7 @@
     docker run -itd sdnlab001/jaguar:0.1.0
 ### 手工启动版本
     首先,下载版本wget http://repo1.maven.org/maven2/com/sdnlab/jaguar-karaf/0.1.0/jaguar-karaf-0.1.0.zip
-    解压jaguar版本jaguar-karaf-0.1.0-SNAPSHOT.zip到某个目录下，比如/home/test/
+    解压jaguar版本jaguar-karaf-0.1.0.zip到某个目录下，比如/home/test/
     运行jaguar，即进入目录/home/test/ jaguar-karaf-0.1.0/bin
     执行 ./karaf
 
